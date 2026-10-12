@@ -1863,28 +1863,45 @@
       const selectedOption = targetSelect?.options[targetSelect.selectedIndex];
       const targetName = selectedOption ? selectedOption.text.replace('🔒 Privado a: ', '').replace('👥 Todos (Mensaje Público)', 'Todos') : 'Todos';
 
-      const fullMessage = {
+      const userId = (currentUser && currentUser.id) ? currentUser.id : (currentRoom.host_id || '00000000-0000-0000-0000-000000000000');
+      const senderName = myCoupleName || 'Jugador';
+
+      const fullMessageObj = {
         type: payloadObj.type || 'text',
         content: payloadObj.content || '',
         target: targetVal,
         targetName: targetName,
-        senderId: currentUser ? currentUser.id : 'anon',
-        senderName: myCoupleName || 'Jugador'
+        senderId: userId,
+        senderName: senderName
       };
 
+      const jsonStr = JSON.stringify(fullMessageObj);
+
+      // 1. Mostrar de inmediato en el chat local del emisor
+      const localMsg = {
+        id: 'local_' + Date.now() + '_' + Math.random(),
+        room_id: currentRoom.id,
+        user_id: userId,
+        couple_name: senderName,
+        message: jsonStr,
+        created_at: new Date().toISOString()
+      };
+      addChat(localMsg);
+
+      // 2. Enviar a Supabase
       const { error } = await supabaseApp.from('chat_messages').insert({
         room_id: currentRoom.id,
-        user_id: currentUser ? currentUser.id : 'anon',
-        couple_name: myCoupleName || 'Jugador',
-        message: JSON.stringify(fullMessage)
+        user_id: userId,
+        couple_name: senderName,
+        message: jsonStr
       });
 
       if (error) {
-        console.log('Error enviando mensaje JSON:', error.message);
+        console.log('Error enviando chat a Supabase:', error.message);
         await supabaseApp.from('chat_messages').insert({
           room_id: currentRoom.id,
-          user_id: currentUser ? currentUser.id : 'anon',
-          couple_name: myCoupleName || 'Jugador',
+          user_id: userId,
+          couple_name: senderName,
           message: payloadObj.type === 'text' ? payloadObj.content : `[${payloadObj.type.toUpperCase()}] ${payloadObj.content}`
         });
       }
@@ -1981,7 +1998,7 @@
 
     function addChat(m){
       if(!m) return;
-      const msgKey = m.id || (m.user_id + '_' + m.created_at);
+      const msgKey = m.id || (m.user_id + '_' + m.created_at + '_' + (typeof m.message === 'string' ? m.message.substring(0,20) : ''));
       if (processedMsgIds.has(msgKey)) return;
       processedMsgIds.add(msgKey);
 
@@ -2008,6 +2025,44 @@
         content = msgData.content || '';
         target = msgData.target || 'ALL';
         targetName = msgData.targetName || 'Todos';
+      }
+
+      // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
+      const myId = currentUser ? currentUser.id : null;
+      const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
+      const isForMe = target === 'ALL' || isMeSender || (myId && target === myId) || (myCoupleName && target === myCoupleName);
+
+      if (!isForMe) return;
+
+      const isPrivate = target !== 'ALL';
+      const prefix = isPrivate ? `<span style="color:#ff4d6a;font-weight:700">[🔒 Privado a ${targetName} de ${senderName}]: </span>` : `<strong>${senderName}:</strong> `;
+
+      let bodyHtml = '';
+      if (type === 'text') {
+        bodyHtml = escapeHtml(content);
+      } else if (type === 'sticker') {
+        bodyHtml = `<span style="background:rgba(212,175,55,0.22);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${escapeHtml(content)}</span>`;
+      } else if (type === 'image') {
+        bodyHtml = `<br><img src="${content}" style="max-width:180px;border-radius:10px;margin-top:4px;border:1px solid var(--gold);cursor:pointer" onclick="window.open(this.src)">`;
+      } else if (type === 'audio') {
+        bodyHtml = `<br><audio controls src="${content}" style="max-width:210px;height:36px;margin-top:4px"></audio>`;
+      }
+
+      const msgEl = document.createElement('div');
+      msgEl.className = 'chat-msg';
+      msgEl.style.marginBottom = '8px';
+      msgEl.style.fontSize = '0.86rem';
+      msgEl.style.wordBreak = 'break-word';
+      msgEl.innerHTML = prefix + bodyHtml;
+
+      box.appendChild(msgEl);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
       }
 
       // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
