@@ -1537,13 +1537,21 @@
     async function loadPlayers(){
       if(!supabaseApp || !currentRoom) return;
 
-      // 1. Consultar el estado actualizado de la sala (rooms) en Supabase
+      // 1. Consultar el estado actualizado de la sala (rooms) en Supabase por ID o por Código
       try {
-        const roomRes = await supabaseApp.from('rooms').select('*').eq('id', currentRoom.id).single();
-        if (roomRes.data) {
-          currentRoom = roomRes.data;
+        let query = supabaseApp.from('rooms').select('*');
+        if (currentRoom.id) {
+          query = query.eq('id', currentRoom.id);
+        } else if (currentRoom.code) {
+          query = query.eq('code', currentRoom.code);
         }
-      } catch(e){}
+        const { data: roomData } = await query.single();
+        if (roomData) {
+          currentRoom = roomData;
+        }
+      } catch(e){
+        console.log('Error refrescando sala:', e);
+      }
 
       // 2. Consultar los participantes (room_players)
       let {data, error} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
@@ -1571,28 +1579,22 @@
 
       const isHost = currentUser && currentUser.id === currentRoom.host_id;
 
-      // 3. SI LA SALA YA PASÓ A 'playing' Y EL JUGADOR ESTÁ ACEPTADO O ES EL HOST:
+      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO DE INMEDIATO PARA TODOS LOS JUGADORES ACEPTADOS O HOST
       if (currentRoom.status === 'playing') {
-        const myRec = currentPlayers.find(p =>
-          (currentUser && p.user_id === currentUser.id) ||
-          (myCoupleName && p.couple_name === myCoupleName)
-        );
-        if (isHost || (myRec && myRec.status === 'accepted')) {
-          stopRoomPolling();
-          startGamePolling();
-          isOffline = false;
-          if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
-            showScreen('transition-screen');
-            setTimeout(() => {
-              document.getElementById('chat-section').style.display = 'block';
-              showScreen('game-screen');
-              updateGameUI();
-            }, 2500);
-          } else {
+        stopRoomPolling();
+        startGamePolling();
+        isOffline = false;
+        if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
+          showScreen('transition-screen');
+          setTimeout(() => {
+            document.getElementById('chat-section').style.display = 'block';
+            showScreen('game-screen');
             updateGameUI();
-          }
-          return;
+          }, 2500);
+        } else {
+          updateGameUI();
         }
+        return;
       }
 
       // Notificación visual y sonora al anfitrión si hay nueva solicitud
