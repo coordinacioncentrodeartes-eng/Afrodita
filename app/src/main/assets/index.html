@@ -795,17 +795,6 @@
        AFRODITA - PERSONAJE & DIÁLOGOS (BLOQUES 1, 2, 3, 4, 5, 6)
        ========================================================================== */
 
-    /**
-     * BLOQUE 1 – Prompt del Personaje (System Prompt)
-     * Eres Afrodita, la diosa griega del amor, el deseo, el placer y la seducción.
-     * Tono sensual, juguetón, dominante, provocativo y descarado.
-     *
-     * BLOQUE 2 – Prompt de Lenguaje Corporal
-     * Expresiones y animaciones sincronizadas con el diálogo (inclinación de cabeza,
-     * mirada lasciva, mordida de labio, sonrisa dominante).
-     */
-
-    // BLOQUE 3 – Base de datos de diálogos (JavaScript)
     const afroditaDialogues = {
       bienvenida: {
         corta: [
@@ -899,7 +888,6 @@
       }
     };
 
-    // BLOQUE 4 – Funciones principales
     function getAfroditaPhrase(category, forceType = null) {
       const cat = afroditaDialogues[category];
       if (!cat) return "";
@@ -926,7 +914,6 @@
       return getAfroditaPhrase(category, type);
     }
 
-    // BLOQUE 5 – Sistema de Cooldown Inteligente
     const afroditaCooldown = {
       lastSpeakTime: 0,
       normalInterval: 18000,
@@ -959,7 +946,6 @@
       return phrase;
     }
 
-    // BLOQUE 6 – Integración en momentos del juego
     function onGameStart(distanceMode = "separados") {
       const phrase = speakAsAfroditaWithCooldown("bienvenida", { distanceMode });
       if (phrase) showAfroditaMessage(phrase);
@@ -1029,6 +1015,123 @@
     let usedQ=new Set(), usedD=new Set(), channel=null;
     let currentCardDrinks=1, isDareCard=false, isOffline=true;
     let votesYes=0, votesNo=0;
+    let activeScreenId = 'home-screen';
+    let currentDisplayedCard = null;
+
+    // PERSISTENCIA DE ESTADO CON LOCALSTORAGE (MANTIENE LA PARTIDA EN SEGUNDO PLANO Y TRAS REINICIOS)
+    function saveGameState() {
+      try {
+        const stateToSave = {
+          isOffline,
+          numPlayers,
+          numCouples,
+          distanceMode,
+          responseMode,
+          intensity,
+          playerNames,
+          myCoupleName,
+          myToys,
+          myPositions,
+          currentTurn,
+          currentRound,
+          skipCount,
+          usedQ: Array.from(usedQ),
+          usedD: Array.from(usedD),
+          currentCardDrinks,
+          isDareCard,
+          votesYes,
+          votesNo,
+          activeScreenId,
+          currentDisplayedCard,
+          currentRoom: currentRoom ? {
+            id: currentRoom.id,
+            code: currentRoom.code,
+            host_id: currentRoom.host_id,
+            num_couples: currentRoom.num_couples,
+            response_mode: currentRoom.response_mode,
+            intensity: currentRoom.intensity,
+            distance_mode: currentRoom.distance_mode,
+            status: currentRoom.status,
+            current_turn: currentRoom.current_turn,
+            current_round: currentRoom.current_round,
+            current_card: currentRoom.current_card
+          } : null
+        };
+        localStorage.setItem('afrodita_game_state', JSON.stringify(stateToSave));
+      } catch (e) {
+        console.log('Error guardando estado:', e);
+      }
+    }
+
+    function restoreGameState() {
+      try {
+        const saved = localStorage.getItem('afrodita_game_state');
+        if (!saved) return false;
+        const data = JSON.parse(saved);
+
+        if (!data) return false;
+
+        isOffline = data.isOffline !== undefined ? data.isOffline : true;
+        numPlayers = data.numPlayers || 2;
+        numCouples = data.numCouples || 2;
+        distanceMode = data.distanceMode || 'separados';
+        responseMode = data.responseMode || 'solo';
+        intensity = data.intensity || 'medio';
+        playerNames = data.playerNames || [];
+        myCoupleName = data.myCoupleName || '';
+        myToys = data.myToys || [];
+        myPositions = data.myPositions || [];
+        currentTurn = data.currentTurn || 0;
+        currentRound = data.currentRound || 1;
+        skipCount = data.skipCount || 0;
+        usedQ = new Set(data.usedQ || []);
+        usedD = new Set(data.usedD || []);
+        currentCardDrinks = data.currentCardDrinks || 1;
+        isDareCard = !!data.isDareCard;
+        votesYes = data.votesYes || 0;
+        votesNo = data.votesNo || 0;
+        currentDisplayedCard = data.currentDisplayedCard || null;
+
+        if (data.currentRoom) {
+          currentRoom = data.currentRoom;
+        }
+
+        // Si es una partida Online activa, reconectar en tiempo real con Supabase
+        if (!isOffline && currentRoom && currentRoom.id) {
+          joinRealtime(currentRoom.id);
+          loadPlayers();
+        }
+
+        if (isOffline && data.activeScreenId === 'offline-setup') {
+          updateOfflinePlayerInputs();
+        }
+
+        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
+        showScreen(targetScreen, false);
+
+        if (targetScreen === 'game-screen') {
+          updateGameUI();
+          if (currentDisplayedCard) {
+            showCard(currentDisplayedCard.label, currentDisplayedCard.text, currentDisplayedCard.isPunishment, false);
+            const yesEl = document.getElementById('vote-yes-count');
+            const noEl = document.getElementById('vote-no-count');
+            if (yesEl) yesEl.textContent = votesYes;
+            if (noEl) noEl.textContent = votesNo;
+          }
+        }
+
+        return true;
+      } catch (e) {
+        console.log('Error restaurando estado:', e);
+        return false;
+      }
+    }
+
+    function clearGameState() {
+      try {
+        localStorage.removeItem('afrodita_game_state');
+      } catch(e) {}
+    }
 
     // RENDER SELECTORES
     function renderSelectors(toyId, posId){
@@ -1043,11 +1146,15 @@
     }
 
     // NAVEGACIÓN
-    function showScreen(id){
+    function showScreen(id, save = true){
       try {
         document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         const target = document.getElementById(id);
-        if(target) target.classList.add('active');
+        if(target) {
+          target.classList.add('active');
+          activeScreenId = id;
+          if (save) saveGameState();
+        }
       } catch(e){ console.log('Error showScreen:', e); }
     }
 
@@ -1091,6 +1198,7 @@
       showScreen('game-screen');
       updateGameUI();
       onGameStart(distanceMode);
+      saveGameState();
     }
 
     // AUTH ONLINE
@@ -1167,6 +1275,7 @@
 
     async function signOut(){
       if(supabaseApp) await supabaseApp.auth.signOut();
+      clearGameState();
       location.reload();
     }
 
@@ -1301,6 +1410,7 @@
         if(channel) supabaseApp.removeChannel(channel);
         currentRoom = null;
       }
+      clearGameState();
       showScreen('dashboard-screen');
     }
 
@@ -1362,6 +1472,7 @@
             showScreen('accepted-wait-screen');
           } else if (myRecord.status === 'rejected') {
             alert('Tu solicitud ha sido rechazada por el anfitrión.');
+            clearGameState();
             showScreen('dashboard-screen');
             return;
           }
@@ -1430,6 +1541,7 @@
     async function leaveRoom(){
       if(channel && supabaseApp) supabaseApp.removeChannel(channel);
       currentRoom = null;
+      clearGameState();
       showScreen('dashboard-screen');
     }
 
@@ -1532,6 +1644,7 @@
       const noEl = document.getElementById('vote-no-count');
       if(yesEl) yesEl.textContent = votesYes;
       if(noEl) noEl.textContent = votesNo;
+      saveGameState();
       sClick();
     }
 
@@ -1550,9 +1663,10 @@
       }
       const vBox = document.getElementById('voting-box');
       if(vBox) vBox.style.display = 'none';
+      saveGameState();
     }
 
-    function showCard(label, text, isPunishment){
+    function showCard(label, text, isPunishment, save = true){
       const card = document.getElementById('game-card');
       card.className = 'game-card' + (isPunishment ? ' punishment' : '');
       document.getElementById('g-type').textContent = isPunishment ? 'CASTIGO ERÓTICO' : label;
@@ -1573,7 +1687,12 @@
       document.getElementById('random-btn').style.display = 'none';
       document.getElementById('action-btns').style.display = 'grid';
 
-      resetVotingUI();
+      currentDisplayedCard = { label, text, isPunishment };
+
+      if (save) {
+        resetVotingUI();
+        saveGameState();
+      }
 
       if (isPunishment) sPunish();
     }
@@ -1607,6 +1726,7 @@
       sNext();
       skipCount=0;
       votesYes = 0; votesNo = 0;
+      currentDisplayedCard = null;
       document.getElementById('skip-btn').style.display='block';
       if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display='none';
       if (document.getElementById('voting-box')) document.getElementById('voting-box').style.display='none';
@@ -1623,6 +1743,7 @@
         document.getElementById('random-btn').style.display='block';
         updateGameUI();
         onNextTurn();
+        saveGameState();
       }else{
         let next=(currentRoom.current_turn||0)+1;
         let round=currentRoom.current_round||1;
@@ -1633,6 +1754,7 @@
         }
         await supabaseApp.from('rooms').update({current_turn:next,current_round:round,current_card:null}).eq('id',currentRoom.id);
         onNextTurn();
+        saveGameState();
       }
     }
 
@@ -1646,7 +1768,7 @@
       }else if(currentRoom){
         const accepted = currentPlayers.filter(p=>p.status==='accepted');
         const name = accepted[currentRoom.current_turn||0]?.couple_name || `Participante ${(currentRoom.current_turn||0)+1}`;
-        document.getElementById('g-round').textContent = `Ronda ${currentRoom.current_round||1}`;
+        document.getElementById('g-round').textContent = `Ronda ${currentRound}`;
         document.getElementById('g-turn').textContent = `Turno de: ${name}`;
         document.getElementById('g-mode').textContent = `Modalidad: ${currentRoom.distance_mode||'separados'}`;
         document.getElementById('g-label').textContent = (currentRoom.intensity||'medio').toUpperCase();
@@ -1656,7 +1778,7 @@
         if(card){
           isDareCard = card.type === 'RETO';
           currentCardDrinks = card.drinks || 1;
-          showCard(card.type, card.text, card.isPunishment);
+          showCard(card.type, card.text, card.isPunishment, false);
         }else{
           el.style.display='none';
           document.getElementById('choice-btns').style.display='grid';
@@ -1672,6 +1794,8 @@
       if(confirm('¿Salir del juego y volver al menú?')){
         if(channel && supabaseApp) supabaseApp.removeChannel(channel);
         currentRoom = null;
+        currentDisplayedCard = null;
+        clearGameState();
         showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
       }
     }
@@ -1681,7 +1805,12 @@
       renderSelectors('toys-offline', 'positions-offline');
       renderSelectors('toys-create', 'positions-create');
       renderSelectors('toys-join', 'positions-join');
-      showHome();
+
+      // Restaurar estado guardado si el navegador/app se minimizó o reinició
+      const restored = restoreGameState();
+      if (!restored) {
+        showHome();
+      }
 
       document.querySelectorAll('.off-num').forEach(b=>b.addEventListener('click', (e)=>{
         e.preventDefault();
@@ -1690,6 +1819,7 @@
         b.classList.add('active');
         numPlayers = parseInt(b.dataset.n) || 2;
         updateOfflinePlayerInputs();
+        saveGameState();
       }));
 
       document.querySelectorAll('.off-mode').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1698,6 +1828,7 @@
         document.querySelectorAll('.off-mode').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
+        saveGameState();
       }));
 
       document.querySelectorAll('.num-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1706,6 +1837,7 @@
         document.querySelectorAll('.num-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         numCouples = parseInt(b.dataset.n) || 1;
+        saveGameState();
       }));
 
       document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1714,6 +1846,7 @@
         document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
+        saveGameState();
       }));
 
       document.querySelectorAll('.distance-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1722,6 +1855,7 @@
         document.querySelectorAll('.distance-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         distanceMode = b.dataset.d || 'separados';
+        saveGameState();
       }));
 
       document.querySelectorAll('.intensity-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1730,19 +1864,24 @@
         document.querySelectorAll('.intensity-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         intensity = b.dataset.i || 'medio';
+        saveGameState();
       }));
 
       if(supabaseApp){
         supabaseApp.auth.getSession().then(({data:{session}})=>{
-          if(session){currentUser = session.user; isOffline = false; showScreen('dashboard-screen')}
+          if(session){
+            currentUser = session.user;
+            if (!restored) {
+              isOffline = false;
+              showScreen('dashboard-screen');
+            }
+          }
         }).catch(()=>{});
 
         supabaseApp.auth.onAuthStateChange((event, session) => {
           console.log('Evento Auth:', event);
           if (session && session.user) {
             currentUser = session.user;
-            isOffline = false;
-            showScreen('dashboard-screen');
           }
         });
       }

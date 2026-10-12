@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                                 webView = this
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
+                                settings.databaseEnabled = true
                                 settings.allowFileAccess = true
                                 settings.allowContentAccess = true
                                 settings.javaScriptCanOpenWindowsAutomatically = true
@@ -67,7 +68,12 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                                loadUrl("file:///android_asset/index.html")
+
+                                if (savedInstanceState != null) {
+                                    restoreState(savedInstanceState)
+                                } else {
+                                    loadUrl("file:///android_asset/index.html")
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxSize()
@@ -75,6 +81,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        webView?.saveState(outState)
     }
 
     override fun onNewIntent(intent: Intent) {

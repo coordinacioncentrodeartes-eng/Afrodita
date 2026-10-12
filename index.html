@@ -1029,6 +1029,123 @@
     let usedQ=new Set(), usedD=new Set(), channel=null;
     let currentCardDrinks=1, isDareCard=false, isOffline=true;
     let votesYes=0, votesNo=0;
+    let activeScreenId = 'home-screen';
+    let currentDisplayedCard = null;
+
+    // PERSISTENCIA DE ESTADO CON LOCALSTORAGE (MANTIENE LA PARTIDA EN SEGUNDO PLANO Y TRAS REINICIOS)
+    function saveGameState() {
+      try {
+        const stateToSave = {
+          isOffline,
+          numPlayers,
+          numCouples,
+          distanceMode,
+          responseMode,
+          intensity,
+          playerNames,
+          myCoupleName,
+          myToys,
+          myPositions,
+          currentTurn,
+          currentRound,
+          skipCount,
+          usedQ: Array.from(usedQ),
+          usedD: Array.from(usedD),
+          currentCardDrinks,
+          isDareCard,
+          votesYes,
+          votesNo,
+          activeScreenId,
+          currentDisplayedCard,
+          currentRoom: currentRoom ? {
+            id: currentRoom.id,
+            code: currentRoom.code,
+            host_id: currentRoom.host_id,
+            num_couples: currentRoom.num_couples,
+            response_mode: currentRoom.response_mode,
+            intensity: currentRoom.intensity,
+            distance_mode: currentRoom.distance_mode,
+            status: currentRoom.status,
+            current_turn: currentRoom.current_turn,
+            current_round: currentRoom.current_round,
+            current_card: currentRoom.current_card
+          } : null
+        };
+        localStorage.setItem('afrodita_game_state', JSON.stringify(stateToSave));
+      } catch (e) {
+        console.log('Error guardando estado:', e);
+      }
+    }
+
+    function restoreGameState() {
+      try {
+        const saved = localStorage.getItem('afrodita_game_state');
+        if (!saved) return false;
+        const data = JSON.parse(saved);
+
+        if (!data) return false;
+
+        isOffline = data.isOffline !== undefined ? data.isOffline : true;
+        numPlayers = data.numPlayers || 2;
+        numCouples = data.numCouples || 2;
+        distanceMode = data.distanceMode || 'separados';
+        responseMode = data.responseMode || 'solo';
+        intensity = data.intensity || 'medio';
+        playerNames = data.playerNames || [];
+        myCoupleName = data.myCoupleName || '';
+        myToys = data.myToys || [];
+        myPositions = data.myPositions || [];
+        currentTurn = data.currentTurn || 0;
+        currentRound = data.currentRound || 1;
+        skipCount = data.skipCount || 0;
+        usedQ = new Set(data.usedQ || []);
+        usedD = new Set(data.usedD || []);
+        currentCardDrinks = data.currentCardDrinks || 1;
+        isDareCard = !!data.isDareCard;
+        votesYes = data.votesYes || 0;
+        votesNo = data.votesNo || 0;
+        currentDisplayedCard = data.currentDisplayedCard || null;
+
+        if (data.currentRoom) {
+          currentRoom = data.currentRoom;
+        }
+
+        // Si es una partida Online activa, reconectar en tiempo real con Supabase
+        if (!isOffline && currentRoom && currentRoom.id) {
+          joinRealtime(currentRoom.id);
+          loadPlayers();
+        }
+
+        if (isOffline && data.activeScreenId === 'offline-setup') {
+          updateOfflinePlayerInputs();
+        }
+
+        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
+        showScreen(targetScreen, false);
+
+        if (targetScreen === 'game-screen') {
+          updateGameUI();
+          if (currentDisplayedCard) {
+            showCard(currentDisplayedCard.label, currentDisplayedCard.text, currentDisplayedCard.isPunishment, false);
+            const yesEl = document.getElementById('vote-yes-count');
+            const noEl = document.getElementById('vote-no-count');
+            if (yesEl) yesEl.textContent = votesYes;
+            if (noEl) noEl.textContent = votesNo;
+          }
+        }
+
+        return true;
+      } catch (e) {
+        console.log('Error restaurando estado:', e);
+        return false;
+      }
+    }
+
+    function clearGameState() {
+      try {
+        localStorage.removeItem('afrodita_game_state');
+      } catch(e) {}
+    }
 
     // RENDER SELECTORES
     function renderSelectors(toyId, posId){
