@@ -1275,8 +1275,30 @@
 
     async function acceptPlayer(id){ await supabaseApp.from('room_players').update({status:'accepted'}).eq('id',id); }
     async function startGame(){
-      await supabaseApp.from('rooms').update({status:'playing',current_turn:0,current_round:1,current_card:null}).eq('id',currentRoom.id);
-      onGameStart(currentRoom?.distance_mode || distanceMode);
+      try {
+        if(!supabaseApp || !currentRoom) return;
+        const { error } = await supabaseApp.from('rooms').update({
+          status: 'playing',
+          current_turn: 0,
+          current_round: 1,
+          current_card: null
+        }).eq('id', currentRoom.id);
+
+        if (error) {
+          alert('Error al iniciar el ritual: ' + error.message);
+          return;
+        }
+
+        currentRoom.status = 'playing';
+        isOffline = false;
+        document.getElementById('chat-section').style.display = 'block';
+        showScreen('game-screen');
+        updateGameUI();
+        onGameStart(currentRoom?.distance_mode || distanceMode);
+      } catch(e) {
+        console.log('Error startGame:', e);
+        alert('Error al iniciar: ' + e.message);
+      }
     }
     async function leaveRoom(){ if(channel && supabaseApp) supabaseApp.removeChannel(channel); currentRoom=null; showScreen('dashboard-screen'); }
 
