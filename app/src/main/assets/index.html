@@ -809,7 +809,7 @@
       "¿Qué te gustaría que te hiciera si estuviera a tu lado en este instante?",
       "Describe con detalle cómo te masturbarías pensando en mí esta noche.",
       "¿Qué juguete te gustaría que usara frente a la cámara?",
-      "¿Te excita máserme en la pantalla o saber que yo te estoy observando?",
+      "¿Te excita más verme en la pantalla o saber que yo te estoy observando?",
       "¿Qué posición erótica te gustaría practicar la próxima vez que estemos juntos?",
       "¿Has usado algún juguete pensando en mí últimamente?",
       "¿Qué me pedirías que hiciera en este momento por videollamada?",
@@ -1158,7 +1158,7 @@
         if (!saved) return false;
         const data = JSON.parse(saved);
 
-        if (!data) return false;
+        if (!data || typeof data !== 'object') return false;
 
         isOffline = data.isOffline !== undefined ? data.isOffline : true;
         numPlayers = data.numPlayers || 2;
@@ -1193,10 +1193,7 @@
             }
             joinRealtime(currentRoom.id);
             loadPlayers();
-          }).catch(() => {
-            joinRealtime(currentRoom.id);
-            loadPlayers();
-          });
+          }).catch(() => {});
         }
 
         if (isOffline && data.activeScreenId === 'offline-setup') {
@@ -1204,7 +1201,12 @@
         }
 
         const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
-        showScreen(targetScreen, false);
+        if (document.getElementById(targetScreen)) {
+          showScreen(targetScreen, false);
+        } else {
+          showHome();
+          return false;
+        }
 
         if (targetScreen === 'game-screen') {
           updateGameUI();
@@ -1821,8 +1823,13 @@
         }
       });
       select.innerHTML = html;
-      if (currentVal && select.querySelector(`option[value="${CSS.escape(currentVal)}"]`)) {
-        select.value = currentVal;
+      if (currentVal) {
+        for (let i = 0; i < select.options.length; i++) {
+          if (select.options[i].value === currentVal) {
+            select.selectedIndex = i;
+            break;
+          }
+        }
       }
     }
 
@@ -2270,7 +2277,7 @@
       }else if(currentRoom){
         const accepted = currentPlayers.filter(p=>p.status==='accepted');
         const name = accepted[currentRoom.current_turn||0]?.couple_name || `Participante ${(currentRoom.current_turn||0)+1}`;
-        document.getElementById('g-round').textContent = `Ronda ${currentRoom.current_round||1}`;
+        document.getElementById('g-round').textContent = `Ronda ${currentRound}`;
         document.getElementById('g-turn').textContent = `Turno de: ${name}`;
         document.getElementById('g-mode').textContent = `Modalidad: ${currentRoom.distance_mode||'separados'}`;
         document.getElementById('g-label').textContent = (currentRoom.intensity||'medio').toUpperCase();
