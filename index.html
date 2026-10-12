@@ -612,9 +612,74 @@
       <button class="action-btn btn-drink" id="fail-btn" style="display:none;grid-column:span 2" onclick="failChallenge()">No lo superé (Beber)</button>
     </div>
 
-    <!-- CHAT EN TIEMPO REAL (SOLO ONLINE) -->
-    <div id="chat-section" style="display:none">
-      <div class="chat-box" id="chat-box"></div>
+    <!-- CHAT MULTIMEDIA EN TIEMPO REAL (SOLO ONLINE) -->
+    <div id="chat-section" style="display:none;margin-top:14px">
+      <div class="section-title" style="margin-bottom:6px">💬 CHAT EN VIVO Y MENSAJERÍA</div>
+
+      <!-- SELECTOR DE DESTINATARIO Y MODO PRIVADO -->
+      <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:0.75rem;color:var(--gold-light);font-weight:600">Enviar a:</span>
+        <select id="chat-target-select" style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid #333;color:var(--text);border-radius:8px;font-size:0.8rem">
+          <option value="ALL">👥 Todos (Mensaje Público)</option>
+        </select>
+      </div>
+
+      <!-- CAJA DE MENSAJES -->
+      <div class="chat-box" id="chat-box" style="min-height:140px;max-height:180px;background:rgba(10,5,8,0.95);border:1px solid var(--gold);border-radius:12px;padding:10px;overflow-y:auto;margin-bottom:8px"></div>
+
+      <!-- BARRA DE HERRAMIENTAS RICAS (EMOJIS, FOTO/SELFIE, NOTA DE VOZ, GIFS/STICKERS) -->
+      <div style="display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
+        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('emoji')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          😊 Emojis
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('sticker')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          🎭 GIFs/Stickers
+        </button>
+        <label class="btn btn-secondary" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0;cursor:pointer;display:inline-block">
+          📸 Foto/Selfie
+          <input type="file" id="chat-file-input" accept="image/*" capture="user" onchange="sendImageChat(this)" style="display:none">
+        </label>
+        <button type="button" id="voice-record-btn" class="btn btn-secondary" onclick="toggleVoiceRecording()" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          🎙️ Nota de Voz
+        </button>
+      </div>
+
+      <!-- PANEL DE EMOJIS DEPLEGABLE -->
+      <div id="emoji-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;font-size:1.2rem;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center;cursor:pointer">
+        <span onclick="addEmojiToChat('🔥')">🔥</span>
+        <span onclick="addEmojiToChat('💋')">💋</span>
+        <span onclick="addEmojiToChat('😈')">😈</span>
+        <span onclick="addEmojiToChat('🥃')">🥃</span>
+        <span onclick="addEmojiToChat('🍆')">🍆</span>
+        <span onclick="addEmojiToChat('🍑')">🍑</span>
+        <span onclick="addEmojiToChat('💦')">💦</span>
+        <span onclick="addEmojiToChat('🥂')">🥂</span>
+        <span onclick="addEmojiToChat('🔞')">🔞</span>
+        <span onclick="addEmojiToChat('✨')">✨</span>
+        <span onclick="addEmojiToChat('⛓️')">⛓️</span>
+        <span onclick="addEmojiToChat('👙')">👙</span>
+        <span onclick="addEmojiToChat('🖤')">🖤</span>
+        <span onclick="addEmojiToChat('👅')">👅</span>
+        <span onclick="addEmojiToChat('👀')">👀</span>
+        <span onclick="addEmojiToChat('💣')">💣</span>
+      </div>
+
+      <!-- PANEL DE GIFS / STICKERS DEPLEGABLE -->
+      <div id="sticker-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="btn btn-secondary" onclick="sendStickerChat('🔥 Fuego Total')" style="font-size:0.75rem;padding:6px;margin:0">🔥 Fuego Total</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💋 Beso Ardiente')" style="font-size:0.75rem;padding:6px;margin:0">💋 Beso Ardiente</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🥃 Fondo Blanco')" style="font-size:0.75rem;padding:6px;margin:0">🥃 Fondo Blanco</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('😈 Modo Atrevido')" style="font-size:0.75rem;padding:6px;margin:0">😈 Atrevido</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🍑 Nalgada')" style="font-size:0.75rem;padding:6px;margin:0">🍑 Nalgada</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💦 Pasión Total')" style="font-size:0.75rem;padding:6px;margin:0">💦 Pasión</button>
+      </div>
+
+      <!-- INDICADOR DE GRABACIÓN DE AUDIO -->
+      <div id="recording-status" style="display:none;color:#ff4d6a;font-size:0.8rem;margin-bottom:6px;text-align:center;font-weight:600">
+        🔴 Grabando nota de voz... <span id="record-timer">00:00</span>
+      </div>
+
+      <!-- FILA DE ENTRADA DE TEXTO Y ENVIAR -->
       <div class="chat-row">
         <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendChat()">
         <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
@@ -1685,12 +1750,15 @@
           </li>`).join('');
       }
 
+      updateChatTargets();
+
       // Habilitar o mostrar el botón de comenzar ritual para el anfitrión
       const startBtn = document.getElementById('start-game-btn');
       if (startBtn && isHost) {
         const acceptedCount = currentPlayers.filter(p => p.status === 'accepted').length;
         startBtn.style.display = acceptedCount >= 1 ? 'block' : 'none';
       }
+    }
     }
 
     // INICIAR RITUAL (FASE 4)
@@ -1731,7 +1799,7 @@
 
     async function leaveRoom(){
       if(channel && supabaseApp) supabaseApp.removeChannel(channel);
-      stopRoomPolling();
+      stopAllPolling();
       currentRoom = null;
       clearGameState();
       showScreen('dashboard-screen');
@@ -2077,6 +2145,17 @@
           }
         });
       }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('App/Navegador volvió al primer plano. Reconectando...');
+          if (!isOffline && currentRoom && currentRoom.id) {
+            joinRealtime(currentRoom.id);
+            loadPlayers();
+            fetchChatMessages();
+          }
+        }
+      });
     });
   </script>
 </body>

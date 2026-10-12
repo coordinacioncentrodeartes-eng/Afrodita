@@ -612,9 +612,74 @@
       <button class="action-btn btn-drink" id="fail-btn" style="display:none;grid-column:span 2" onclick="failChallenge()">No lo superé (Beber)</button>
     </div>
 
-    <!-- CHAT EN TIEMPO REAL (SOLO ONLINE) -->
-    <div id="chat-section" style="display:none">
-      <div class="chat-box" id="chat-box"></div>
+    <!-- CHAT MULTIMEDIA EN TIEMPO REAL (SOLO ONLINE) -->
+    <div id="chat-section" style="display:none;margin-top:14px">
+      <div class="section-title" style="margin-bottom:6px">💬 CHAT EN VIVO Y MENSAJERÍA</div>
+
+      <!-- SELECTOR DE DESTINATARIO Y MODO PRIVADO -->
+      <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:0.75rem;color:var(--gold-light);font-weight:600">Enviar a:</span>
+        <select id="chat-target-select" style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid #333;color:var(--text);border-radius:8px;font-size:0.8rem">
+          <option value="ALL">👥 Todos (Mensaje Público)</option>
+        </select>
+      </div>
+
+      <!-- CAJA DE MENSAJES -->
+      <div class="chat-box" id="chat-box" style="min-height:140px;max-height:180px;background:rgba(10,5,8,0.95);border:1px solid var(--gold);border-radius:12px;padding:10px;overflow-y:auto;margin-bottom:8px"></div>
+
+      <!-- BARRA DE HERRAMIENTAS RICAS (EMOJIS, FOTO/SELFIE, NOTA DE VOZ, GIFS/STICKERS) -->
+      <div style="display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
+        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('emoji')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          😊 Emojis
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('sticker')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          🎭 GIFs/Stickers
+        </button>
+        <label class="btn btn-secondary" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0;cursor:pointer;display:inline-block">
+          📸 Foto/Selfie
+          <input type="file" id="chat-file-input" accept="image/*" capture="user" onchange="sendImageChat(this)" style="display:none">
+        </label>
+        <button type="button" id="voice-record-btn" class="btn btn-secondary" onclick="toggleVoiceRecording()" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
+          🎙️ Nota de Voz
+        </button>
+      </div>
+
+      <!-- PANEL DE EMOJIS DEPLEGABLE -->
+      <div id="emoji-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;font-size:1.2rem;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center;cursor:pointer">
+        <span onclick="addEmojiToChat('🔥')">🔥</span>
+        <span onclick="addEmojiToChat('💋')">💋</span>
+        <span onclick="addEmojiToChat('😈')">😈</span>
+        <span onclick="addEmojiToChat('🥃')">🥃</span>
+        <span onclick="addEmojiToChat('🍆')">🍆</span>
+        <span onclick="addEmojiToChat('🍑')">🍑</span>
+        <span onclick="addEmojiToChat('💦')">💦</span>
+        <span onclick="addEmojiToChat('🥂')">🥂</span>
+        <span onclick="addEmojiToChat('🔞')">🔞</span>
+        <span onclick="addEmojiToChat('✨')">✨</span>
+        <span onclick="addEmojiToChat('⛓️')">⛓️</span>
+        <span onclick="addEmojiToChat('👙')">👙</span>
+        <span onclick="addEmojiToChat('🖤')">🖤</span>
+        <span onclick="addEmojiToChat('👅')">👅</span>
+        <span onclick="addEmojiToChat('👀')">👀</span>
+        <span onclick="addEmojiToChat('💣')">💣</span>
+      </div>
+
+      <!-- PANEL DE GIFS / STICKERS DEPLEGABLE -->
+      <div id="sticker-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="btn btn-secondary" onclick="sendStickerChat('🔥 Fuego Total')" style="font-size:0.75rem;padding:6px;margin:0">🔥 Fuego Total</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💋 Beso Ardiente')" style="font-size:0.75rem;padding:6px;margin:0">💋 Beso Ardiente</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🥃 Fondo Blanco')" style="font-size:0.75rem;padding:6px;margin:0">🥃 Fondo Blanco</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('😈 Modo Atrevido')" style="font-size:0.75rem;padding:6px;margin:0">😈 Atrevido</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🍑 Nalgada')" style="font-size:0.75rem;padding:6px;margin:0">🍑 Nalgada</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💦 Pasión Total')" style="font-size:0.75rem;padding:6px;margin:0">💦 Pasión</button>
+      </div>
+
+      <!-- INDICADOR DE GRABACIÓN DE AUDIO -->
+      <div id="recording-status" style="display:none;color:#ff4d6a;font-size:0.8rem;margin-bottom:6px;text-align:center;font-weight:600">
+        🔴 Grabando nota de voz... <span id="record-timer">00:00</span>
+      </div>
+
+      <!-- FILA DE ENTRADA DE TEXTO Y ENVIAR -->
       <div class="chat-row">
         <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendChat()">
         <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
@@ -1123,17 +1188,11 @@
         // Si es una partida Online activa, verificar con Supabase si la sala aún existe
         if (!isOffline && currentRoom && currentRoom.id && supabaseApp) {
           supabaseApp.from('rooms').select('status').eq('id', currentRoom.id).single().then(({ data: rData, error }) => {
-            if (error || !rData) {
-              console.log('La sala guardada ya no existe en Supabase. Limpiando estado.');
-              clearGameState();
-              stopAllPolling();
-              currentRoom = null;
-              showScreen('dashboard-screen', false);
-            } else {
+            if (!error && rData) {
               currentRoom.status = rData.status;
-              joinRealtime(currentRoom.id);
-              loadPlayers();
             }
+            joinRealtime(currentRoom.id);
+            loadPlayers();
           }).catch(() => {
             joinRealtime(currentRoom.id);
             loadPlayers();
@@ -1508,6 +1567,7 @@
               updateGameUI();
             }
           }
+          fetchChatMessages();
         } else {
           stopGamePolling();
         }
@@ -1605,22 +1665,33 @@
 
       const isHost = currentUser && currentUser.id === currentRoom.host_id;
 
-      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO DE INMEDIATO PARA TODOS LOS JUGADORES ACEPTADOS O HOST
+      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO SOLO SI EL JUGADOR FUE ACEPTADO O ES EL HOST
       if (currentRoom.status === 'playing') {
-        stopRoomPolling();
-        startGamePolling();
-        isOffline = false;
-        if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
-          showScreen('transition-screen');
-          setTimeout(() => {
-            document.getElementById('chat-section').style.display = 'block';
-            showScreen('game-screen');
+        const myRec = currentPlayers.find(p =>
+          (currentUser && p.user_id === currentUser.id) ||
+          (myCoupleName && p.couple_name === myCoupleName)
+        );
+
+        if (isHost || (myRec && myRec.status === 'accepted')) {
+          stopRoomPolling();
+          startGamePolling();
+          isOffline = false;
+          if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
+            showScreen('transition-screen');
+            setTimeout(() => {
+              document.getElementById('chat-section').style.display = 'block';
+              showScreen('game-screen');
+              updateGameUI();
+            }, 2500);
+          } else {
             updateGameUI();
-          }, 2500);
-        } else {
-          updateGameUI();
+          }
+          return;
+        } else if (myRec && myRec.status === 'pending') {
+          // MANTENER AL INVITADO EN ESPERA DE APROBACIÓN
+          showScreen('pending-screen');
+          return;
         }
-        return;
       }
 
       // Notificación visual y sonora al anfitrión si hay nueva solicitud
@@ -1679,6 +1750,8 @@
           </li>`).join('');
       }
 
+      updateChatTargets();
+
       // Habilitar o mostrar el botón de comenzar ritual para el anfitrión
       const startBtn = document.getElementById('start-game-btn');
       if (startBtn && isHost) {
@@ -1732,20 +1805,245 @@
       showScreen('dashboard-screen');
     }
 
-    // CHAT ONLINE
-    async function sendChat(){
+    // ==========================================================================
+    // SISTEMA DE CHAT, MENSAJERÍA PRIVADA Y MULTIMEDIA EN TIEMPO REAL
+    // ==========================================================================
+
+    function updateChatTargets() {
+      const select = document.getElementById('chat-target-select');
+      if (!select) return;
+      const currentVal = select.value;
+      let html = `<option value="ALL">👥 Todos (Mensaje Público)</option>`;
+      currentPlayers.forEach(p => {
+        const isMe = currentUser && p.user_id === currentUser.id;
+        if (!isMe && p.status === 'accepted') {
+          html += `<option value="${p.user_id || p.couple_name}">🔒 Privado a: ${p.couple_name}</option>`;
+        }
+      });
+      select.innerHTML = html;
+      if (currentVal && select.querySelector(`option[value="${CSS.escape(currentVal)}"]`)) {
+        select.value = currentVal;
+      }
+    }
+
+    function toggleChatDrawer(drawerType) {
+      const emojiDrawer = document.getElementById('emoji-drawer');
+      const stickerDrawer = document.getElementById('sticker-drawer');
+
+      if (drawerType === 'emoji') {
+        if (emojiDrawer) emojiDrawer.style.display = (emojiDrawer.style.display === 'grid') ? 'none' : 'grid';
+        if (stickerDrawer) stickerDrawer.style.display = 'none';
+      } else if (drawerType === 'sticker') {
+        if (stickerDrawer) stickerDrawer.style.display = (stickerDrawer.style.display === 'grid') ? 'none' : 'grid';
+        if (emojiDrawer) emojiDrawer.style.display = 'none';
+      }
+    }
+
+    function closeChatDrawers() {
+      const emojiDrawer = document.getElementById('emoji-drawer');
+      const stickerDrawer = document.getElementById('sticker-drawer');
+      if (emojiDrawer) emojiDrawer.style.display = 'none';
+      if (stickerDrawer) stickerDrawer.style.display = 'none';
+    }
+
+    function addEmojiToChat(emoji) {
+      const input = document.getElementById('chat-input');
+      if (input) input.value += emoji;
+    }
+
+    async function sendChatPayload(payloadObj) {
       if(!supabaseApp || !currentRoom) return;
+      const targetSelect = document.getElementById('chat-target-select');
+      const targetVal = targetSelect ? targetSelect.value : 'ALL';
+      const selectedOption = targetSelect?.options[targetSelect.selectedIndex];
+      const targetName = selectedOption ? selectedOption.text.replace('🔒 Privado a: ', '').replace('👥 Todos (Mensaje Público)', 'Todos') : 'Todos';
+
+      const fullMessage = {
+        type: payloadObj.type || 'text',
+        content: payloadObj.content || '',
+        target: targetVal,
+        targetName: targetName,
+        senderId: currentUser ? currentUser.id : 'anon',
+        senderName: myCoupleName || 'Jugador'
+      };
+
+      const { error } = await supabaseApp.from('chat_messages').insert({
+        room_id: currentRoom.id,
+        user_id: currentUser ? currentUser.id : 'anon',
+        couple_name: myCoupleName || 'Jugador',
+        message: JSON.stringify(fullMessage)
+      });
+
+      if (error) {
+        console.log('Error enviando mensaje JSON:', error.message);
+        await supabaseApp.from('chat_messages').insert({
+          room_id: currentRoom.id,
+          user_id: currentUser ? currentUser.id : 'anon',
+          couple_name: myCoupleName || 'Jugador',
+          message: payloadObj.type === 'text' ? payloadObj.content : `[${payloadObj.type.toUpperCase()}] ${payloadObj.content}`
+        });
+      }
+      fetchChatMessages();
+    }
+
+    async function sendChat(){
       const input = document.getElementById('chat-input');
       const msg = input.value.trim();
       if(!msg) return;
-      await supabaseApp.from('chat_messages').insert({room_id:currentRoom.id, user_id:currentUser.id, couple_name:myCoupleName, message:msg});
       input.value = '';
+      await sendChatPayload({ type: 'text', content: msg });
+      closeChatDrawers();
     }
 
+    async function sendStickerChat(stickerName){
+      await sendChatPayload({ type: 'sticker', content: stickerName });
+      closeChatDrawers();
+    }
+
+    function sendImageChat(inputEl) {
+      if (!inputEl.files || !inputEl.files[0]) return;
+      const file = inputEl.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = async function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 380;
+          let w = img.width, h = img.height;
+          if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+          else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const base64Jpeg = canvas.toDataURL('image/jpeg', 0.65);
+          await sendChatPayload({ type: 'image', content: base64Jpeg });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      inputEl.value = '';
+      closeChatDrawers();
+    }
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordTimerInterval = null;
+    let recordSeconds = 0;
+
+    async function toggleVoiceRecording() {
+      const btn = document.getElementById('voice-record-btn');
+      const statusEl = document.getElementById('recording-status');
+      const timerEl = document.getElementById('record-timer');
+
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader();
+            reader.onloadend = async function() {
+              const base64Audio = reader.result;
+              await sendChatPayload({ type: 'audio', content: base64Audio });
+            };
+            reader.readAsDataURL(audioBlob);
+            stream.getTracks().forEach(t => t.stop());
+          };
+          mediaRecorder.start();
+          recordSeconds = 0;
+          if (statusEl) statusEl.style.display = 'block';
+          if (btn) btn.textContent = '⏹️ Enviar Nota';
+          recordTimerInterval = setInterval(() => {
+            recordSeconds++;
+            const m = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+            const s = String(recordSeconds % 60).padStart(2, '0');
+            if (timerEl) timerEl.textContent = `${m}:${s}`;
+          }, 1000);
+        } catch(e) {
+          alert('No se pudo acceder al micrófono para grabar la nota de voz: ' + e.message);
+        }
+      } else if (mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        clearInterval(recordTimerInterval);
+        if (statusEl) statusEl.style.display = 'none';
+        if (btn) btn.textContent = '🎙️ Nota de Voz';
+      }
+    }
+
+    const processedMsgIds = new Set();
+
     function addChat(m){
+      if(!m) return;
+      const msgKey = m.id || (m.user_id + '_' + m.created_at);
+      if (processedMsgIds.has(msgKey)) return;
+      processedMsgIds.add(msgKey);
+
       const box = document.getElementById('chat-box');
-      box.innerHTML += `<div class="chat-msg"><strong>${m.couple_name}:</strong> ${m.message}</div>`;
+      if(!box) return;
+
+      let msgData = null;
+      try {
+        if (typeof m.message === 'string' && m.message.trim().startsWith('{')) {
+          msgData = JSON.parse(m.message);
+        }
+      } catch(e){}
+
+      const senderName = m.couple_name || 'Jugador';
+      const senderId = m.user_id;
+
+      let type = 'text';
+      let content = m.message;
+      let target = 'ALL';
+      let targetName = 'Todos';
+
+      if (msgData) {
+        type = msgData.type || 'text';
+        content = msgData.content || '';
+        target = msgData.target || 'ALL';
+        targetName = msgData.targetName || 'Todos';
+      }
+
+      // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
+      const myId = currentUser ? currentUser.id : null;
+      const isForMe = target === 'ALL' || (myId && (target === myId || senderId === myId)) || (myCoupleName && target === myCoupleName);
+
+      if (!isForMe) return;
+
+      const isPrivate = target !== 'ALL';
+      const prefix = isPrivate ? `<span style="color:#ff4d6a;font-weight:700">[🔒 Privado a ${targetName} de ${senderName}]: </span>` : `<strong>${senderName}:</strong> `;
+
+      let bodyHtml = '';
+      if (type === 'text') {
+        bodyHtml = content;
+      } else if (type === 'sticker') {
+        bodyHtml = `<span style="background:rgba(212,175,55,0.22);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${content}</span>`;
+      } else if (type === 'image') {
+        bodyHtml = `<br><img src="${content}" style="max-width:180px;border-radius:10px;margin-top:4px;border:1px solid var(--gold)" onclick="window.open(this.src)">`;
+      } else if (type === 'audio') {
+        bodyHtml = `<br><audio controls src="${content}" style="max-width:210px;height:36px;margin-top:4px"></audio>`;
+      }
+
+      const msgEl = document.createElement('div');
+      msgEl.className = 'chat-msg';
+      msgEl.style.marginBottom = '8px';
+      msgEl.style.fontSize = '0.86rem';
+      msgEl.style.wordBreak = 'break-word';
+      msgEl.innerHTML = prefix + bodyHtml;
+
+      box.appendChild(msgEl);
       box.scrollTop = box.scrollHeight;
+    }
+
+    async function fetchChatMessages() {
+      if(!supabaseApp || !currentRoom) return;
+      try {
+        const { data } = await supabaseApp.from('chat_messages').select('*').eq('room_id', currentRoom.id).order('created_at');
+        if (data && data.length) {
+          data.forEach(m => addChat(m));
+        }
+      } catch(e){}
     }
 
     // JUEGO
@@ -2090,6 +2388,17 @@
           }
         });
       }
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('App/Navegador volvió al primer plano. Reconectando...');
+          if (!isOffline && currentRoom && currentRoom.id) {
+            joinRealtime(currentRoom.id);
+            loadPlayers();
+            fetchChatMessages();
+          }
+        }
+      });
     });
   </script>
 </body>
