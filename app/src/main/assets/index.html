@@ -457,25 +457,65 @@
 
   <!-- SALA DE ESPERA ONLINE -->
   <div id="room-screen" class="screen">
+    <div class="logo" style="font-size:2.2rem">Sala de Espera</div>
+    <div class="subtitle" style="color:#4ade80;margin-bottom:12px">Ritual creado con éxito</div>
+
     <div class="section-title">Código de invitación</div>
     <div class="invite-code" id="room-code">------</div>
-    <p class="status">Solo entrarán quienes aceptes</p>
+    <button class="btn btn-secondary" onclick="copyInviteCode()" style="margin-bottom:6px;font-size:0.85rem">
+      📋 Copiar código
+    </button>
+    <p class="status" style="margin-bottom:12px;font-size:0.8rem">Comparte este código por WhatsApp con quienes quieras invitar.</p>
+
     <div class="card">
       <div class="section-title" style="margin-top:0">Jugadores</div>
       <ul class="player-list" id="player-list"></ul>
     </div>
-    <button class="btn btn-primary" id="start-game-btn" style="display:none" onclick="startGame()">Comenzar Ritual</button>
-    <button class="btn btn-secondary" onclick="leaveRoom()">Salir</button>
+
+    <p id="room-help-msg" class="status" style="margin-top:10px;font-size:0.82rem;color:var(--gold-light)">
+      Espera a que los jugadores se unan y acéptalos. Cuando todos estén listos, inicia el ritual.
+    </p>
+
+    <button class="btn btn-primary" id="start-game-btn" style="display:none;margin-top:10px" onclick="startGame()">Comenzar Ritual</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="leaveRoom()">Salir del Ritual</button>
   </div>
 
-  <!-- INVITACIÓN -->
-  <div id="invite-screen" class="screen">
-    <div class="logo" style="font-size:1.8rem">Invitación</div>
-    <div class="card" style="text-align:center">
-      <p>Te han invitado a un ritual de <strong>Afrodita</strong></p>
-      <p style="margin:12px 0;color:var(--muted)">Código: <span id="invite-code-display"></span></p>
-      <button class="btn btn-primary" onclick="acceptInvite()">Aceptar</button>
-      <button class="btn btn-danger" onclick="rejectInvite()">Rechazar</button>
+  <!-- PANTALLA INVITADO: ESPERANDO APROBACIÓN -->
+  <div id="pending-screen" class="screen">
+    <div class="logo" style="font-size:2rem">Esperando aprobación</div>
+    <div class="card" style="text-align:center;padding:22px 16px">
+      <h3 style="color:var(--gold);margin-bottom:10px;font-family:'Playfair Display',serif;font-size:1.3rem">Tu solicitud ha sido enviada</h3>
+      <p style="color:var(--text);font-size:0.9rem;margin-bottom:14px">El anfitrión debe aceptar tu ingreso para que puedas entrar a la sala.</p>
+      <div class="badge pending" style="display:inline-block;padding:8px 16px;font-size:0.82rem;margin-bottom:14px;border-radius:12px">
+        ⏳ Pendiente de aprobación…
+      </div>
+      <p style="color:var(--muted);font-size:0.78rem;margin-bottom:20px">
+        No cierres esta pantalla. Te avisaremos cuando te acepten.
+      </p>
+      <button class="btn btn-danger" onclick="cancelPendingRequest()">Cancelar solicitud</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA INVITADO: DENTRO DE SALA ACEPTADO -->
+  <div id="accepted-wait-screen" class="screen">
+    <div class="logo" style="font-size:2rem">¡Has sido aceptado!</div>
+    <div class="card" style="text-align:center;padding:22px 16px">
+      <h3 style="color:#4ade80;margin-bottom:10px;font-family:'Playfair Display',serif;font-size:1.3rem">El anfitrión te ha dejado entrar a la sala</h3>
+      <p style="color:var(--text);font-size:0.9rem;margin-bottom:18px">Espera a que inicie el ritual…</p>
+      <button class="btn btn-secondary" disabled style="opacity:0.8;cursor:not-allowed;font-size:0.88rem;width:100%">
+        ⏳ Esperando que el anfitrión comience…
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA TRANSICIÓN: EL RITUAL COMIENZA -->
+  <div id="transition-screen" class="screen">
+    <div class="card" style="text-align:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%, #350810 0%, #150206 75%, #080003 100%);border:2px solid var(--gold);border-radius:22px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:2.2rem;color:var(--gold);margin-bottom:14px">El Ritual comienza</h2>
+      <p style="font-size:1.15rem;color:var(--text);line-height:1.5">
+        Prepárense…<br>
+        <strong style="color:var(--gold-light)">Afrodita ya está aquí.</strong>
+      </p>
     </div>
   </div>
 
@@ -1179,19 +1219,33 @@
     function showCreate(){ showScreen('create-screen'); onConfigToys(); }
     function showJoin(){ showScreen('join-screen'); onConfigToys(); }
 
-    // CREAR SALA ONLINE
+    function copyInviteCode() {
+      const code = document.getElementById('room-code').textContent;
+      const inviteText = `Ritual de Afrodita - Código de invitación: ${code}\nIngresa desde: https://afrodita-alpha.vercel.app/`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(inviteText).then(() => {
+          alert("¡Código de invitación copiado al portapapeles!\nComparte el enlace con tus invitados.");
+        }).catch(() => {
+          alert(`Código de invitación: ${code}`);
+        });
+      } else {
+        alert(`Código de invitación: ${code}`);
+      }
+    }
+
+    // CREAR SALA ONLINE (FASE 1)
     async function createRoom(){
       if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
-      myCoupleName = document.getElementById('couple-name-create').value.trim() || 'Jugador 1';
+      myCoupleName = document.getElementById('couple-name-create').value.trim() || 'Anfitrión';
       myToys = getSelected('toys-create');
       myPositions = getSelected('positions-create');
       const code = 'AFRO-' + Math.random().toString(36).substring(2,6).toUpperCase();
 
-      const {data:room,error} = await supabaseApp.from('rooms').insert({
+      const {data:room, error} = await supabaseApp.from('rooms').insert({
         code, host_id:currentUser.id, num_couples:numCouples,
         response_mode:responseMode, intensity, distance_mode:distanceMode, status:'waiting'
       }).select().single();
-      if(error){ alert(error.message); return; }
+      if(error){ alert('Error al crear el ritual: ' + error.message); return; }
 
       await supabaseApp.from('room_players').insert({
         room_id:room.id, user_id:currentUser.id, couple_name:myCoupleName,
@@ -1204,9 +1258,11 @@
       showScreen('room-screen');
       document.getElementById('room-code').textContent = code;
       loadPlayers();
+
+      showAfroditaMessage("Mmm… el ritual está listo. Ahora llama a quienes quieras que jueguen contigo.");
     }
 
-    // UNIRSE A SALA ONLINE
+    // UNIRSE A SALA ONLINE (FASE 2)
     async function requestJoin(){
       if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
       const code = document.getElementById('join-code').value.trim().toUpperCase();
@@ -1214,31 +1270,47 @@
       myToys = getSelected('toys-join');
       myPositions = getSelected('positions-join');
 
-      const {data:room} = await supabaseApp.from('rooms').select('*').eq('code',code).single();
-      if(!room){ document.getElementById('join-msg').innerHTML='<span class="error">Código no válido</span>'; return; }
+      if(!code){
+        document.getElementById('join-msg').innerHTML = '<span class="error">Ingresa un código de invitación.</span>';
+        return;
+      }
+
+      const {data:room, error:roomErr} = await supabaseApp.from('rooms').select('*').eq('code',code).single();
+      if(!room || room.status !== 'waiting'){
+        document.getElementById('join-msg').innerHTML = '<span class="error">Código no válido. Revisa e intenta de nuevo.</span>';
+        return;
+      }
 
       const {error} = await supabaseApp.from('room_players').insert({
         room_id:room.id, user_id:currentUser.id, couple_name:myCoupleName,
         status:'pending', toys:myToys, positions:myPositions
       });
-      if(error){ document.getElementById('join-msg').innerHTML=`<span class="error">${error.message}</span>`; return; }
+      if(error){
+        document.getElementById('join-msg').innerHTML = `<span class="error">${error.message}</span>`;
+        return;
+      }
 
       currentRoom = room;
-      document.getElementById('invite-code-display').textContent = code;
-      showScreen('invite-screen');
+      showScreen('pending-screen');
       joinRealtime(room.id);
     }
 
-    async function acceptInvite(){
-      await supabaseApp.from('room_players').update({status:'accepted'}).eq('room_id',currentRoom.id).eq('user_id',currentUser.id);
-      showScreen('room-screen');
-      document.getElementById('room-code').textContent = currentRoom.code;
-      loadPlayers();
+    async function cancelPendingRequest(){
+      if(currentRoom && currentUser && supabaseApp){
+        await supabaseApp.from('room_players').delete().eq('room_id', currentRoom.id).eq('user_id', currentUser.id);
+        if(channel) supabaseApp.removeChannel(channel);
+        currentRoom = null;
+      }
+      showScreen('dashboard-screen');
     }
 
-    async function rejectInvite(){
-      await supabaseApp.from('room_players').update({status:'rejected'}).eq('room_id',currentRoom.id).eq('user_id',currentUser.id);
-      showScreen('dashboard-screen');
+    // VALIDACIÓN DE JUGADORES (FASE 3)
+    async function acceptPlayer(id){
+      if(!supabaseApp || !currentRoom) return;
+      const { error } = await supabaseApp.from('room_players').update({status:'accepted'}).eq('id',id);
+      if(!error){
+        showAfroditaMessage("Bienvenido… ya casi empezamos.");
+      }
     }
 
     function joinRealtime(roomId){
@@ -1248,32 +1320,79 @@
         .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
         .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
           currentRoom = p.new;
-          if(currentRoom.status==='playing'){
+          if(currentRoom.status === 'playing'){
             isOffline = false;
-            document.getElementById('chat-section').style.display = 'block';
-            showScreen('game-screen');
-            updateGameUI();
-          } else updateGameUI();
+            showScreen('transition-screen');
+            setTimeout(() => {
+              document.getElementById('chat-section').style.display = 'block';
+              showScreen('game-screen');
+              updateGameUI();
+            }, 2500);
+          } else {
+            loadPlayers();
+          }
         })
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',filter:`room_id=eq.${roomId}`},p=>addChat(p.new))
         .subscribe();
     }
 
+    let lastPendingCount = 0;
+
     async function loadPlayers(){
-      if(!supabaseApp) return;
+      if(!supabaseApp || !currentRoom) return;
       const {data} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
       currentPlayers = data || [];
-      document.getElementById('player-list').innerHTML = currentPlayers.map(p => `
-        <li>
-          <span>${p.couple_name}</span>
-          <span class="badge ${p.status}">${p.status}</span>
-          ${currentUser.id===currentRoom.host_id && p.status==='pending' ?
-            `<button onclick="acceptPlayer('${p.id}')" style="margin-left:6px;padding:3px 8px;font-size:.7rem;background:#0a2a1a;border:none;color:#4ade80;border-radius:5px;cursor:pointer">Aceptar</button>` : ''}
-        </li>`).join('');
-      if(currentUser.id === currentRoom.host_id) document.getElementById('start-game-btn').style.display = 'block';
+      const pendingPlayers = currentPlayers.filter(p=>p.status==='pending');
+
+      const isHost = currentUser.id === currentRoom.host_id;
+
+      // Notificación de Afrodita al anfitrión si hay nueva solicitud
+      if (isHost && pendingPlayers.length > lastPendingCount) {
+        showAfroditaMessage("Alguien quiere entrar… ¿Lo dejas pasar?");
+      }
+      lastPendingCount = pendingPlayers.length;
+
+      // Si el usuario no es el anfitrión, actualizar su pantalla según su estado individual
+      if (!isHost) {
+        const myRecord = currentPlayers.find(p => p.user_id === currentUser.id);
+        if (myRecord) {
+          if (myRecord.status === 'pending') {
+            showScreen('pending-screen');
+          } else if (myRecord.status === 'accepted' && currentRoom.status === 'waiting') {
+            showScreen('accepted-wait-screen');
+          } else if (myRecord.status === 'rejected') {
+            alert('Tu solicitud ha sido rechazada por el anfitrión.');
+            showScreen('dashboard-screen');
+            return;
+          }
+        }
+      } else {
+        if (currentRoom.status === 'waiting') {
+          showScreen('room-screen');
+        }
+      }
+
+      // Renderizar la lista de jugadores
+      const playerListEl = document.getElementById('player-list');
+      if (playerListEl) {
+        playerListEl.innerHTML = currentPlayers.map(p => `
+          <li>
+            <span>${p.couple_name} ${p.user_id === currentRoom.host_id ? '(Anfitrión)' : ''}</span>
+            <span class="badge ${p.status}">${p.status === 'accepted' ? 'Aceptado' : p.status === 'pending' ? 'Pendiente' : 'Rechazado'}</span>
+            ${isHost && p.status === 'pending' ?
+              `<button onclick="acceptPlayer('${p.id}')" style="margin-left:6px;padding:4px 10px;font-size:.75rem;background:#0a2a1a;border:1px solid #4ade80;color:#4ade80;border-radius:6px;cursor:pointer;font-weight:600">Aceptar</button>` : ''}
+          </li>`).join('');
+      }
+
+      // Habilitar o mostrar el botón de comenzar ritual para el anfitrión
+      const startBtn = document.getElementById('start-game-btn');
+      if (startBtn && isHost) {
+        const acceptedCount = currentPlayers.filter(p => p.status === 'accepted').length;
+        startBtn.style.display = acceptedCount >= 1 ? 'block' : 'none';
+      }
     }
 
-    async function acceptPlayer(id){ await supabaseApp.from('room_players').update({status:'accepted'}).eq('id',id); }
+    // INICIAR RITUAL (FASE 4)
     async function startGame(){
       try {
         if(!supabaseApp || !currentRoom) return;
@@ -1291,16 +1410,28 @@
 
         currentRoom.status = 'playing';
         isOffline = false;
-        document.getElementById('chat-section').style.display = 'block';
-        showScreen('game-screen');
-        updateGameUI();
-        onGameStart(currentRoom?.distance_mode || distanceMode);
+
+        showAfroditaMessage("Ya están todos. Es hora de comenzar. ¿Listos para mojarse?");
+
+        showScreen('transition-screen');
+        setTimeout(() => {
+          document.getElementById('chat-section').style.display = 'block';
+          showScreen('game-screen');
+          updateGameUI();
+          onGameStart(currentRoom?.distance_mode || distanceMode);
+        }, 2500);
+
       } catch(e) {
         console.log('Error startGame:', e);
         alert('Error al iniciar: ' + e.message);
       }
     }
-    async function leaveRoom(){ if(channel && supabaseApp) supabaseApp.removeChannel(channel); currentRoom=null; showScreen('dashboard-screen'); }
+
+    async function leaveRoom(){
+      if(channel && supabaseApp) supabaseApp.removeChannel(channel);
+      currentRoom = null;
+      showScreen('dashboard-screen');
+    }
 
     // CHAT ONLINE
     async function sendChat(){
