@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Afrodita Online & Offline</title>
+  <!-- Supabase JS guardado localmente en assets -->
+  <script src="supabase.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+    :root{--bg:#070707;--card:rgba(20,20,20,.93);--gold:#d4af37;--gold-light:#f0d78c;--red:#9b1b1b;--text:#f8f5f0;--muted:#a0a0a0}
+    *{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background-image:radial-gradient(ellipse at 50% -20%,#2a1010 0%,transparent 60%)}
+    .screen{width:100%;max-width:420px;display:none;animation:fadeUp .4s ease}
+    .screen.active{display:block}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes cardIn{0%{opacity:0;transform:rotateY(50deg) scale(.94)}100%{opacity:1;transform:rotateY(0) scale(1)}}
+    @keyframes shake{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+
+    .logo{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:700;background:linear-gradient(135deg,var(--gold-light),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;text-align:center;margin-bottom:4px}
+    .subtitle{text-align:center;color:var(--muted);font-size:.88rem;letter-spacing:1.5px;margin-bottom:20px}
+    input{width:100%;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid #2a2a2a;border-radius:11px;color:var(--text);font-size:.95rem;margin-bottom:9px}
+    input:focus{outline:none;border-color:var(--gold)}
+    button, .btn, .choice-btn, .action-btn, .random-btn{user-select:none;-webkit-user-select:none;cursor:pointer}
+    .btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:1rem;font-weight:600;transition:all .22s;margin-bottom:8px}
+    .btn-primary{background:linear-gradient(135deg,var(--gold),#b8860b);color:#111}
+    .btn-primary:active{transform:scale(0.98);box-shadow:0 4px 15px rgba(212,175,55,.3)}
+    .btn-secondary{background:var(--card);border:1px solid #333;color:var(--text)}
+    .btn-secondary:active{background:#2a2a2a}
+    .btn-danger{background:transparent;border:1px solid #c41e3a;color:#ff4d6a}
+    .btn-drink{background:transparent;border:1px solid #c41e3a;color:#ff6b6b;margin-top:6px}
+    .btn.active{border-color:var(--gold);background:rgba(212,175,55,0.18)}
+    .section-title{font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:14px 0 9px;text-align:center}
+    .status{text-align:center;font-size:.84rem;color:var(--muted);margin-top:8px;min-height:18px}
+    .error{color:#ff6b6b}.success{color:#4ade80}.muted{color:var(--muted)}
+    .card{background:var(--card);border:1px solid #333;border-radius:13px;padding:14px;margin-bottom:11px}
+    .invite-code{font-size:1.55rem;letter-spacing:3px;color:var(--gold);text-align:center;font-weight:700;margin:8px 0}
+    .player-list{list-style:none;margin:7px 0}
+    .player-list li{padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;font-size:.87rem}
+    .badge{font-size:.67rem;padding:2px 7px;border-radius:10px}
+    .badge.pending{background:#3a2a00;color:#f0c14b}
+    .badge.accepted{background:#0a2a1a;color:#4ade80}
+
+    .toys-box{max-height:160px;overflow-y:auto;background:var(--card);border:1px solid #2a2a2a;border-radius:11px;padding:10px;margin-bottom:12px}
+    .toy-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1a1a;font-size:.87rem;cursor:pointer}
+    .toy-item:last-child{border-bottom:none}
+    .toy-item input{width:auto;margin:0}
+
+    .stats{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);margin-bottom:10px}
+    .turn-name{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--gold);text-align:center;line-height:1.3}
+    .mode-ind{font-size:.74rem;color:var(--muted);text-align:center;margin:3px 0 12px}
+    .choice-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .choice-btn{padding:15px 6px;border-radius:12px;border:1px solid #2a2a2a;background:var(--card);color:var(--text);font-size:1rem;font-weight:600}
+    .random-btn{width:100%;padding:12px;border-radius:12px;border:1.5px dashed var(--gold);background:transparent;color:var(--gold);font-weight:600;margin-bottom:12px}
+
+    /* DISEÑO DE TARJETA DE LUJO */
+    .game-card {
+      display: none;
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      min-height: 430px;
+      margin: 0 auto 12px;
+      padding: 24px 20px;
+      background: radial-gradient(ellipse at 50% 30%, #1e090c 0%, #0a0304 70%, #050203 100%);
+      border-radius: 22px;
+      box-shadow: 0 16px 45px rgba(0,0,0,0.9), inset 0 0 30px rgba(180, 20, 30, 0.25);
+      animation: cardIn .48s ease;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      border-radius: 22px;
+      padding: 3px;
+      background: linear-gradient(135deg, #f0d78c 0%, #d4af37 30%, #8b6d1f 50%, #d4af37 70%, #f0d78c 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .game-card::after {
+      content: '';
+      position: absolute;
+      top: 9px; left: 9px; right: 9px; bottom: 9px;
+      border-radius: 15px;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      pointer-events: none;
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.95rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      background: linear-gradient(180deg, #fff3d1 0%, #e6c265 60%, #a68128 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      margin: 2px 0;
+      text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+    }
+
+    .gold-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 2px 0;
+      color: #d4af37;
+      font-size: 0.75rem;
+      opacity: 0.85;
+    }
+    .gold-divider::before, .gold-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+    }
+
+    .card-body {
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-text {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.18rem;
+      line-height: 1.55;
+      text-align: center;
+      color: #f8f5f0;
+      font-weight: 500;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    }
+
+    .drink-info {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(196,30,58,0.2);
+      border: 1px solid rgba(255,107,107,0.4);
+      border-radius: 10px;
+      color: #ff8585;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .card-footer {
+      text-align: center;
+      margin-top: 14px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .heart-lock-svg {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto;
+      filter: drop-shadow(0 3px 8px rgba(212, 175, 55, 0.4));
+    }
+
+    .game-card.punishment {
+      background: radial-gradient(ellipse at 50% 30%, #350810 0%, #150206 75%, #080003 100%);
+      box-shadow: 0 16px 45px rgba(180, 20, 30, 0.5), inset 0 0 30px rgba(255, 20, 50, 0.3);
+      animation: shake .4s ease, cardIn .48s ease;
+    }
+    .game-card.punishment::before {
+      background: linear-gradient(135deg, #ff6b8b 0%, #c41e3a 40%, #7a0b1d 70%, #ff4d6a 100%);
+    }
+    .game-card.punishment .card-title {
+      background: linear-gradient(180deg, #ffc2cd 0%, #ff4d6a 60%, #9b1b1b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .action-btns{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+    .action-btn{padding:12px;border-radius:10px;font-size:.9rem;font-weight:600;border:none}
+    .next-btn{background:#1a1a1a;border:1px solid #333!important;color:var(--text)}
+    .skip-btn{background:transparent;border:1px solid #3a3a3a!important;color:var(--muted)}
+
+    .chat-box{background:var(--card);border:1px solid #2a2a2a;border-radius:11px;padding:9px;max-height:140px;overflow-y:auto;margin-bottom:7px;font-size:.84rem}
+    .chat-msg{margin-bottom:4px}.chat-msg strong{color:var(--gold)}
+    .chat-row{display:flex;gap:6px}
+    .chat-row input{margin-bottom:0;flex:1}
+    .chat-row button{width:auto;padding:0 14px;margin:0}
+
+    /* DIÁLOGOS Y PERSONAJE AFRODITA */
+    #afrodita-dialogue {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-25px);
+      width: calc(100% - 24px);
+      max-width: 420px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(45, 12, 20, 0.98), rgba(15, 3, 6, 0.97));
+      border: 1.5px solid var(--gold);
+      border-radius: 18px;
+      padding: 10px 14px;
+      color: var(--gold-light);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), 0 0 25px rgba(212, 175, 55, 0.4);
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .afrodita-avatar-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+      flex-shrink: 0;
+    }
+
+    .afrodita-text-box {
+      flex: 1;
+      text-align: left;
+    }
+
+    .afrodita-title {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+      margin-bottom: 2px;
+      text-shadow: 0 1px 4px rgba(212, 175, 55, 0.6);
+    }
+
+    .dialogue-text {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 0.88rem;
+      font-style: italic;
+      line-height: 1.38;
+      color: var(--gold-light);
+    }
+
+    #afrodita-dialogue.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+
+    /* ESTILOS DE VOTACIÓN (✔ Y ✖) */
+    .voting-box {
+      background: rgba(20, 10, 15, 0.92);
+      border: 1px solid var(--gold);
+      border-radius: 14px;
+      padding: 12px;
+      margin: 10px 0;
+      text-align: center;
+    }
+    .voting-title {
+      font-size: 0.82rem;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .voting-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .vote-btn {
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s;
+    }
+    .vote-btn:active {
+      transform: scale(0.96);
+    }
+    .vote-yes {
+      background: rgba(10, 80, 40, 0.85);
+      border: 1px solid #4ade80;
+      color: #4ade80;
+    }
+    .vote-no {
+      background: rgba(120, 20, 30, 0.85);
+      border: 1px solid #ff4d6a;
+      color: #ff4d6a;
+    }
+    .vote-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+    .vote-label {
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CONTENEDOR FLOTANTE DE DIÁLOGOS DE AFRODITA -->
+  <div id="afrodita-dialogue" onclick="this.classList.remove('visible')">
+    <img src="afrodita.png" class="afrodita-avatar-img" alt="Afrodita">
+    <div class="afrodita-text-box">
+      <span class="afrodita-title">✨ AFRODITA ✨</span>
+      <span class="dialogue-text"></span>
+    </div>
+  </div>
+
+  <!-- HOME PRINCIPAL -->
+  <div id="home-screen" class="screen active">
+    <div class="logo">Afrodita</div>
+    <div class="subtitle">Verdades & Retos Íntimos</div>
+    <button class="btn btn-primary" onclick="startOffline()" style="margin-bottom:12px;background:linear-gradient(135deg, #f0d78c, #d4af37);color:#0a0304;font-size:1.08rem">
+      📱 Jugar Offline (Un solo teléfono)
+    </button>
+    <button class="btn btn-secondary" onclick="showScreen('login-screen')">🌐 Jugar Online (Varios teléfonos)</button>
+  </div>
+
+  <!-- LOGIN ONLINE -->
+  <div id="login-screen" class="screen">
+    <div class="logo" style="font-size:2.1rem">Afrodita</div>
+    <div class="subtitle">Online</div>
+    <input type="email" id="email" placeholder="Correo electrónico">
+    <input type="password" id="password" placeholder="Contraseña">
+    <button class="btn btn-primary" onclick="signIn()">Iniciar sesión</button>
+    <button class="btn btn-secondary" onclick="signUp()">Crear cuenta</button>
+    <button class="btn btn-secondary" onclick="showScreen('home-screen')">← Volver al inicio</button>
+    <p id="auth-msg" class="status"></p>
+  </div>
+
+  <!-- CONFIGURACIÓN OFFLINE -->
+  <div id="offline-setup" class="screen">
+    <div class="logo" style="font-size:2.2rem">Modo Offline</div>
+    <div class="subtitle">Sin necesidad de internet</div>
+
+    <div class="section-title">Número de participantes</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
+      <button class="btn btn-secondary off-num active" data-n="2">2</button>
+      <button class="btn btn-secondary off-num" data-n="3">3</button>
+      <button class="btn btn-secondary off-num" data-n="4">4</button>
+      <button class="btn btn-secondary off-num" data-n="5">5</button>
+      <button class="btn btn-secondary off-num" data-n="6">6</button>
+      <button class="btn btn-secondary off-num" data-n="7">7</button>
+      <button class="btn btn-secondary off-num" data-n="8">8</button>
+    </div>
+
+    <div class="section-title">Nombres de los participantes</div>
+    <div id="offline-player-inputs"></div>
+
+    <div class="section-title">Juguetes sexuales disponibles</div>
+    <div class="toys-box" id="toys-offline"></div>
+
+    <div class="section-title">Posiciones que quieren practicar</div>
+    <div class="toys-box" id="positions-offline"></div>
+
+    <button class="btn btn-primary" onclick="startOfflineGame()">Comenzar Ritual Offline</button>
+    <button class="btn btn-secondary" onclick="showScreen('home-screen')">Volver</button>
+  </div>
+
+  <!-- DASHBOARD ONLINE -->
+  <div id="dashboard-screen" class="screen">
+    <div class="logo" style="font-size:2.1rem">Afrodita</div>
+    <div class="subtitle">Modo Online</div>
+    <button class="btn btn-primary" onclick="showCreate()">Crear Ritual Online</button>
+    <button class="btn btn-secondary" onclick="showJoin()">Unirme con código</button>
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="signOut()">Cerrar sesión</button>
+  </div>
+
+  <!-- CREAR ONLINE -->
+  <div id="create-screen" class="screen">
+    <div class="section-title">Crear Ritual Online</div>
+    <input type="text" id="couple-name-create" placeholder="Tu nombre o nombre de pareja">
+
+    <div class="section-title">Modalidad de distancia</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary distance-btn active" data-d="separados">Todos separados</button>
+      <button class="btn btn-secondary distance-btn" data-d="parejas-juntas">Parejas juntas (en distintos lugares)</button>
+      <button class="btn btn-secondary distance-btn" data-d="mixta">Mixta</button>
+    </div>
+
+    <div class="section-title">Número de participantes / parejas</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
+      <button class="btn btn-secondary num-btn active" data-n="1">1</button>
+      <button class="btn btn-secondary num-btn" data-n="2">2</button>
+      <button class="btn btn-secondary num-btn" data-n="3">3</button>
+      <button class="btn btn-secondary num-btn" data-n="4">4</button>
+    </div>
+
+    <div class="section-title">Intensidad</div>
+    <div style="display:flex;gap:7px;margin-bottom:10px">
+      <button class="btn btn-secondary intensity-btn" data-i="suave">Suave</button>
+      <button class="btn btn-secondary intensity-btn active" data-i="medio">Medio</button>
+      <button class="btn btn-secondary intensity-btn" data-i="atrevido">Atrevido</button>
+    </div>
+
+    <div class="section-title">¿Quién responde?</div>
+    <div style="display:flex;gap:7px;margin-bottom:12px">
+      <button class="btn btn-secondary mode-btn active" data-mode="solo" style="flex:1">Solo quien elige</button>
+      <button class="btn btn-secondary mode-btn" data-mode="pareja" style="flex:1">Toda la pareja</button>
+    </div>
+
+    <div class="section-title">Tus juguetes disponibles</div>
+    <div class="toys-box" id="toys-create"></div>
+
+    <div class="section-title">Posiciones que quieres usar</div>
+    <div class="toys-box" id="positions-create"></div>
+
+    <button class="btn btn-primary" onclick="createRoom()">Crear e invitar</button>
+    <button class="btn btn-secondary" onclick="showScreen('dashboard-screen')">Volver</button>
+  </div>
+
+  <!-- UNIRSE ONLINE -->
+  <div id="join-screen" class="screen">
+    <div class="section-title">Unirse a un Ritual Online</div>
+    <input type="text" id="join-code" placeholder="Código AFRO-XXXX" style="text-transform:uppercase">
+    <input type="text" id="couple-name-join" placeholder="Tu nombre o nombre de pareja">
+
+    <div class="section-title">Tus juguetes disponibles</div>
+    <div class="toys-box" id="toys-join"></div>
+
+    <div class="section-title">Posiciones que quieres usar</div>
+    <div class="toys-box" id="positions-join"></div>
+
+    <button class="btn btn-primary" onclick="requestJoin()">Solicitar unirme</button>
+    <button class="btn btn-secondary" onclick="showScreen('dashboard-screen')">Volver</button>
+    <p id="join-msg" class="status"></p>
+  </div>
+
+  <!-- SALA DE ESPERA ONLINE -->
+  <div id="room-screen" class="screen">
+    <div class="section-title">Código de invitación</div>
+    <div class="invite-code" id="room-code">------</div>
+    <p class="status">Solo entrarán quienes aceptes</p>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Jugadores</div>
+      <ul class="player-list" id="player-list"></ul>
+    </div>
+    <button class="btn btn-primary" id="start-game-btn" style="display:none" onclick="startGame()">Comenzar Ritual</button>
+    <button class="btn btn-secondary" onclick="leaveRoom()">Salir</button>
+  </div>
+
+  <!-- INVITACIÓN -->
+  <div id="invite-screen" class="screen">
+    <div class="logo" style="font-size:1.8rem">Invitación</div>
+    <div class="card" style="text-align:center">
+      <p>Te han invitado a un ritual de <strong>Afrodita</strong></p>
+      <p style="margin:12px 0;color:var(--muted)">Código: <span id="invite-code-display"></span></p>
+      <button class="btn btn-primary" onclick="acceptInvite()">Aceptar</button>
+      <button class="btn btn-danger" onclick="rejectInvite()">Rechazar</button>
+    </div>
+  </div>
+
+  <!-- JUEGO -->
+  <div id="game-screen" class="screen">
+    <div class="stats">
+      <span id="g-round">Ronda 1</span>
+      <span id="g-label">OFFLINE</span>
+    </div>
+    <div class="turn-name" id="g-turn">—</div>
+    <div class="mode-ind" id="g-mode"></div>
+
+    <div class="choice-btns" id="choice-btns">
+      <button class="choice-btn" onclick="drawCard('truth')">Pregunta</button>
+      <button class="choice-btn" onclick="drawCard('dare')">Reto</button>
+    </div>
+    <button class="random-btn" id="random-btn" onclick="drawCard('random')">Aleatorio</button>
+
+    <div class="game-card" id="game-card">
+      <div class="card-header">
+        <div class="gold-divider">❖ ─── ❖</div>
+        <div class="card-title" id="g-type">PREGUNTA</div>
+        <div class="gold-divider">❖ ─── ❖</div>
+      </div>
+      <div class="card-body">
+        <div class="card-text" id="g-text"></div>
+        <div class="drink-info" id="drink-info"></div>
+      </div>
+      <div class="card-footer">
+        <div class="gold-divider">✦ ── ✦</div>
+        <svg class="heart-lock-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f0d78c" />
+              <stop offset="50%" stop-color="#d4af37" />
+              <stop offset="100%" stop-color="#8b6d1f" />
+            </linearGradient>
+          </defs>
+          <path d="M50 88 C20 65 5 48 5 30 A 22 22 0 0 1 50 18 A 22 22 0 0 1 95 30 C 95 48 80 65 50 88 Z" fill="url(#goldGrad)" stroke="#f0d78c" stroke-width="1.5" />
+          <circle cx="50" cy="40" r="6" fill="#0d0405" />
+          <polygon points="46,42 54,42 52,58 48,58" fill="#0d0405" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE VOTACIÓN Y EVALUACIÓN DE RETO/CASTIGO -->
+    <div class="voting-box" id="voting-box" style="display:none">
+      <div class="voting-title">EVALUACIÓN DE LOS OTROS PARTICIPANTES</div>
+      <p style="font-size:0.75rem;color:var(--muted);margin-bottom:8px">
+        ¿Consideran que el reto o la penalización culminó satisfactoriamente?
+      </p>
+      <div class="voting-btns">
+        <button class="vote-btn vote-yes" onclick="voteChallenge(true)">
+          <span class="vote-icon">✔</span>
+          <span class="vote-label">Aprobado (<span id="vote-yes-count">0</span>)</span>
+        </button>
+        <button class="vote-btn vote-no" onclick="voteChallenge(false)">
+          <span class="vote-icon">✖</span>
+          <span class="vote-label">Rechazado (<span id="vote-no-count">0</span>)</span>
+        </button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;font-size:0.88rem;padding:10px" onclick="evaluateVoting()">
+        Validar Votación
+      </button>
+    </div>
+
+    <div class="action-btns" id="action-btns">
+      <button class="action-btn next-btn" onclick="nextTurn()">Siguiente</button>
+      <button class="action-btn skip-btn" id="skip-btn" onclick="skipCard()">Saltar</button>
+      <button class="action-btn btn-drink" id="fail-btn" style="display:none;grid-column:span 2" onclick="failChallenge()">No lo superé (Beber)</button>
+    </div>
+
+    <!-- CHAT EN TIEMPO REAL (SOLO ONLINE) -->
+    <div id="chat-section" style="display:none">
+      <div class="chat-box" id="chat-box"></div>
+      <div class="chat-row">
+        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="exitGame()">← Salir al menú principal</button>
+  </div>
+
+  <script>
+    window.onerror = function(msg, url, line) {
+      console.log('Error JS:', msg, 'Línea:', line);
+      return false;
+    };
+
+    // ================== CONFIGURACIÓN SUPABASE ==================
+    const SUPABASE_URL = 'https://adwnwjpqgcfciwctglvt.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_AMgq8TH-K_DeimwUqtzDRw_zaEpmQwi';
+    // ==========================================================
+
+    let supabaseApp = null;
+    try {
+      if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+        if (SUPABASE_URL && SUPABASE_URL !== 'PEGA_AQUI_TU_PROJECT_URL') {
+          supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+      }
+    } catch(e) {
+      console.log('Supabase no inicializado:', e);
+    }
+
+    // Sonidos seguros
+    let audioCtx = null;
+    function getAudioCtx() {
+      if(!audioCtx) {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if(AudioContextClass) audioCtx = new AudioContextClass();
+        } catch(e) {}
+      }
+      if(audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(()=>{});
+      }
+      return audioCtx;
+    }
+
+    function tone(f,t,d,v=0.05){
+      try {
+        const c = getAudioCtx();
+        if(!c) return;
+        const o=c.createOscillator(),g=c.createGain();
+        o.type=t;o.frequency.value=f;g.gain.value=v;
+        o.connect(g);g.connect(c.destination);
+        o.start();g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);
+        o.stop(c.currentTime+d);
+      } catch(e){}
+    }
+    const sClick=()=>tone(680,'sine',0.07);
+    const sCard=()=>{tone(420,'triangle',0.18);tone(620,'sine',0.1,0.03)};
+    const sPunish=()=>tone(180,'sawtooth',0.25,0.07);
+    const sDrink=()=>tone(320,'sine',0.22,0.06);
+    const sNext=()=>{tone(520,'sine',0.1);tone(780,'sine',0.08,0.025)};
+
+    // JUGUETES Y POSICIONES
+    const allToys = ["Dado de posiciones sexuales","Vibrador clásico","Vibrador rabbit","Vibrador de punto G","Balas vibradoras","Anillo vibrador","Huevo vibrador","Masajeador de próstata","Consolador realista","Consolador doble","Consolador de cristal","Dildo con ventosa","Arnés + dildo","Plug anal pequeño","Plug anal mediano","Plug anal grande","Plug con cola","Cuentas anales","Esposas","Cuerdas de bondage","Antifaz / Venda de ojos","Látigo suave","Fusta","Mordaza","Pinzas para pezones","Velas de masaje","Aceite / Lubricante","Lubricante anal","Bolas chinas","Succionador de clítoris","Masturbador masculino","Fleshlight","Collar de sumisión","Correa","Kit de bondage básico"];
+    const allPositions = ["Misionero","Doggy style","Vaquera (cowgirl)","Vaquera inversa","Cucharita","De pie","Contra la pared","69","Pies en los hombros","Tijera","Amazonas","Descanso del guerrero","Puente","Lateral","Sentados cara a cara","Plegaria del loto","El ancla","El arco","La silla","El columpio"];
+
+    // CARTAS Y RETOS EN ESPAÑOL LATINOAMÉRICA
+    const baseQ = [
+      "¿Cuál es la fantasía sexual más sucia y prohibida que tienes con tu pareja?",
+      "¿Qué parte del cuerpo de tu pareja te vuelve más loco/a cuando la tienes en la boca?",
+      "Describe con todo detalle cómo te gustaría que tu pareja te haga el amor o te tome.",
+      "¿Te gusta que te dominen en la cama o prefieres dominar tú?",
+      "¿Has fantaseado con grabar a tu pareja mientras tienen sexo?",
+      "¿Qué te pone más caliente: que te digan cosas sucias o que te traten con cariño atrevido?",
+      "¿Cuál es el lugar más arriesgado donde te gustaría que tu pareja te toque o te haga el amor?",
+      "¿Te excita la idea de que te amarren y te usen toda la noche sin poder moverte?",
+      "¿Qué prefieres: sexo oral lento y profundo o hacerlo duro y rápido?",
+      "¿Te gusta sentir el semen de tu pareja dentro de ti, en la cara o en el cuerpo?",
+      "Describe el orgasmo más intenso que has tenido con tu pareja.",
+      "¿Prefieres tener más control o más sumisión en la cama?",
+      "¿Te pone caliente que te dejen marcas (mordidas, chupetones, agarres)?",
+      "¿Cuál es la posición en la que más te gusta que tu pareja te haga suya/o?",
+      "¿Te ha excitado alguna vez la idea de tener sexo medio dormido/a?",
+      "¿Qué te gustaría que tu pareja te hiciera con la lengua que todavía no ha hecho?",
+      "¿Prefieres que te miren fijamente a los ojos mientras tienen sexo o dejarse llevar salvajemente?",
+      "¿Te gusta sentir el olor del sexo con tu pareja después de haber terminado?",
+      "¿Has fantaseado con tragar el semen de tu pareja estando de rodillas?",
+      "¿Qué te pone más caliente escuchar: 'eres mío/a' o palabras traviesas y sucias?",
+      "¿Te gustaría que tu pareja te grabe un video privado haciendo exactamente lo que te pida?",
+      "¿Cuál es el juguete sexual que más te gustaría usar (o que usen contigo) esta noche?",
+      "¿Te excita el 'edging' (llevarte al borde del orgasmo varias veces sin dejarte venir)?",
+      "¿Has pensado en tener sexo en el carro, un callejón o un baño público con tu pareja?",
+      "¿Qué zona de tu cuerpo te da más timidez pero a la vez más excitación que te exploren?",
+      "¿Te gusta que te jalen el cabello suavemente mientras hacen el amor?",
+      "¿Prefieres que te traten con sumisión total o como dios/diosa del placer?",
+      "¿Cuál es la fantasía más atrevida y caliente que te gustaría cumplir con tu pareja?",
+      "¿Te excita la idea de besarse apasionadamente después de hacérselo de espaldas?",
+      "¿Prefieres que te llenen de semen o quedar completamente húmeda/o y sudando de pasión?",
+      "¿Has fantaseado con que te usen amarrado/a y con los ojos vendados?",
+      "¿Qué te gustaría oír de tu pareja justo cuando se esté viniendo dentro o encima de ti?",
+      "¿Te excita que tu pareja te mire fijamente a los ojos mientras te masturbas?",
+      "¿Cuál es tu límite sexual real y cuál te gustaría romper juntos esta noche?",
+      "¿Te gusta sentir una mano firme en tu cuello mientras tienen sexo?",
+      "¿Has fantaseado con un 'facial' completo y luego un beso apasionado?",
+      "¿Qué te pone más caliente: tener el control total en la cama o entregarte por completo?",
+      "¿Te gustaría que te hagan el amor tan intenso que al día siguiente te duelan las piernas?",
+      "¿Cuál es la fantasía de juego de roles (roleplay) que más te calienta hacer con tu pareja?",
+      "¿Te excita la idea de que te dejen marcas temporales como señal de que se pertenecen?"
+    ];
+
+    const groupQ = [
+      "¿A cuál de las otras parejas te gustaría ver teniendo sexo (o que los vean a ustedes)?",
+      "¿Has fantaseado con intercambiar parejas aunque sea por un momento?",
+      "¿Qué te gustaría hacerle a la pareja de otra persona de este grupo?",
+      "Describe una escena de fantasía donde todas las personas aquí presentes estén involucradas.",
+      "¿Te excita la idea de que otra pareja los observe mientras hacen el amor?",
+      "¿Elegirías a alguien de otra pareja para hacer un trío junto a tu pareja?",
+      "¿Qué parte del cuerpo de otra persona del grupo te llama más la atención sexualmente?",
+      "¿Te gustaría que otra pareja les dé órdenes sobre qué hacerse durante 10 minutos?",
+      "¿Has pensado en un intercambio suave ('soft swap': besos, caricias, sexo oral) con otra pareja?",
+      "¿Qué te pondría más caliente: ver a tu pareja con otra persona frente a ti o participar tú?"
+    ];
+
+    const remoteQ = [
+      "¿Cuál es la fantasía más sucia que tienes conmigo estando a distancia?",
+      "¿Qué te gustaría que te hiciera si estuviera a tu lado en este instante?",
+      "Describe con detalle cómo te masturbarías pensando en mí esta noche.",
+      "¿Qué juguete te gustaría que usara frente a la cámara?",
+      "¿Te excita más verme en la pantalla o saber que yo te estoy observando?",
+      "¿Qué posición erótica te gustaría practicar la próxima vez que estemos juntos?",
+      "¿Has usado algún juguete pensando en mí últimamente?",
+      "¿Qué me pedirías que hiciera en este momento por videollamada?",
+      "¿Te gustaría que te dé órdenes sensuales por voz en este instante?",
+      "¿Cuál es tu mayor fantasía a distancia?"
+    ];
+
+    const baseD = [
+      {text: "Ponte de rodillas y hazle sexo oral a tu pareja durante 2 minutos sin usar las manos.", drinks: 2},
+      {text: "Quítale la ropa usando solo la boca y tus dientes.", drinks: 1},
+      {text: "Siéntate en el rostro de tu pareja hasta que alguno de los dos se venga.", drinks: 2},
+      {text: "Besos y caricias íntimas en sus zonas sensibles durante 5 minutos usando solo la boca.", drinks: 2},
+      {text: "Amarra las muñecas de tu pareja y hazle lo que quieras con ternura y pasión durante 10 minutos.", drinks: 2},
+      {text: "Ponte en cuatro puntos y pídele a tu pareja que te tome apasionadamente por detrás.", drinks: 1},
+      {text: "Hazle una masturbación sensual usando tus pechos o muslos hasta hacerlo venir.", drinks: 1},
+      {text: "Lámetelo/a desde la base hasta la punta mirándolo/a a los ojos.", drinks: 1},
+      {text: "Desvístelo/a con la boca y dale besos íntimos hasta que esté completamente excitado/a.", drinks: 1},
+      {text: "Siéntate encima de tu pareja y muévete al ritmo que te vaya indicando.", drinks: 2},
+      {text: "Véndale los ojos a tu pareja y explora todo su cuerpo con tu lengua y tus dedos.", drinks: 1},
+      {text: "Ponte de rodillas, abre la boca y recibe todo su amor y fluidos sin tirar nada.", drinks: 2},
+      {text: "Usa solo la lengua para hacer venir a tu pareja en menos de 5 minutos.", drinks: 3},
+      {text: "Usa tres dedos sensuales mientras le das besos íntimos en sus zonas erógenas.", drinks: 2},
+      {text: "Ponte a horcajadas y frota tus partes íntimas contra las de tu pareja sin penetrar aún.", drinks: 1},
+      {text: "Dale besos suaves en la parte posterior y muslos mientras le haces una caricia íntima.", drinks: 2},
+      {text: "Jálale el cabello suavemente y dale besos apasionados en la boca.", drinks: 2},
+      {text: "Acuéstate, abre las piernas y deja que tu pareja te explore con la boca hasta hacerte gemir.", drinks: 1},
+      {text: "Ponte de rodillas y pídele a tu pareja que te use para su completo placer.", drinks: 1},
+      {text: "Usa un poco de aceite y dale el mejor masaje erótico de su vida.", drinks: 1}
+    ];
+
+    const remoteD = [
+      {text: "Enciende la cámara y muéstrame cómo te tocas sensualmente durante 1 minuto.", drinks: 1},
+      {text: "Usa tu vibrador o juguete durante 2 minutos mientras me miras a los ojos.", drinks: 2},
+      {text: "Quítate una prenda lentamente frente a la cámara.", drinks: 1},
+      {text: "Mírame a la cámara y dime en voz alta y explícita lo que te gustaría que te hiciera.", drinks: 1},
+      {text: "Ponte en la posición erótica que más te excite y mantenla 30 segundos en pantalla.", drinks: 1},
+      {text: "Usa tu plug o juguete íntimo y muéstrame tu rostro de puro placer.", drinks: 2},
+      {text: "Acaríciate hasta casi alcanzar el clímax y detente. Enséñame tu reacción.", drinks: 2},
+      {text: "Escribe un mensaje sumamente atrevido y envíamelo en este instante.", drinks: 1},
+      {text: "Describe exactamente qué me harías con la boca en este preciso momento.", drinks: 1},
+      {text: "Ponte el antifaz y toca tu cuerpo mientras yo te doy instrucciones por voz.", drinks: 2},
+      {text: "Usa las esposas o amarres y pide permiso antes de tocarte.", drinks: 2},
+      {text: "Enséñame tu juguete favorito y úsalo durante 1 minuto frente a la cámara.", drinks: 2},
+      {text: "Acaríciate en la posición vaquera moviendo tus caderas sensualmente.", drinks: 1},
+      {text: "Lame o besa tu juguete o dedos de forma provocativa frente a la cámara.", drinks: 2},
+      {text: "Alcanza el clímax o muestra tu máxima excitación frente a la cámara.", drinks: 3}
+    ];
+
+    const toyD = [
+      {text: "Lanza el dado de posiciones sexuales y practica la posición resultante durante 2 minutos.", drinks: 2, toys: ["Dado de posiciones sexuales"]},
+      {text: "Usa el vibrador en tu pareja durante 3 minutos sin parar.", drinks: 2, toys: ["Vibrador clásico", "Vibrador rabbit", "Vibrador de punto G", "Balas vibradoras"]},
+      {text: "Coloca el anillo vibrador a tu pareja y hazle caricias eróticas.", drinks: 2, toys: ["Anillo vibrador"]},
+      {text: "Usa el plug anal erótico durante el juego íntimo.", drinks: 3, toys: ["Plug anal pequeño", "Plug anal mediano", "Plug anal grande"]},
+      {text: "Coloca las esposas y el antifaz a tu pareja: tienes 5 minutos de control total.", drinks: 2, toys: ["Esposas", "Antifaz / Venda de ojos"]},
+      {text: "Coloca las pinzas de pezones y dale besos ardientes.", drinks: 2, toys: ["Pinzas para pezones"]},
+      {text: "Usa el consolador sensual mientras le das besos apasionados.", drinks: 2, toys: ["Consolador realista", "Consolador de cristal", "Dildo con ventosa"]},
+      {text: "Usa el arnés erótico durante 3 minutos de pasión.", drinks: 3, toys: ["Arnés + dildo"]},
+      {text: "Coloca las bolas chinas o huevos eróticos y disfruta sus movimientos.", drinks: 1, toys: ["Bolas chinas", "Huevos vaginales"]},
+      {text: "Dale 10 caricias o toques suaves con el látigo o fusta.", drinks: 1, toys: ["Látigo suave", "Fusta"]},
+      {text: "Usa el collar de sumisión y la correa para guiar a tu pareja.", drinks: 2, toys: ["Collar de sumisión", "Correa"]}
+    ];
+
+    const punishments = [
+      "Castigo: Toma 2 copas seguidas ahora mismo.",
+      "Castigo: Toma 1 copa y acaríciate o hazle sexo oral a tu pareja 30 segundos.",
+      "Castigo: Toma 3 copas seguidas.",
+      "Castigo: Quítate una prenda y toma 1 copa.",
+      "Castigo: Toma 2 copas y confiesa en voz alta tu fantasía más ardiente."
+    ];
+
+    /* ==========================================================================
+       AFRODITA - PERSONAJE & DIÁLOGOS (BLOQUES 1, 2, 3, 4, 5, 6)
+       ========================================================================== */
+
+    /**
+     * BLOQUE 1 – Prompt del Personaje (System Prompt)
+     * Eres Afrodita, la diosa griega del amor, el deseo, el placer y la seducción.
+     * Tono sensual, juguetón, dominante, provocativo y descarado.
+     *
+     * BLOQUE 2 – Prompt de Lenguaje Corporal
+     * Expresiones y animaciones sincronizadas con el diálogo (inclinación de cabeza,
+     * mirada lasciva, mordida de labio, sonrisa dominante).
+     */
+
+    // BLOQUE 3 – Base de datos de diálogos (JavaScript)
+    const afroditaDialogues = {
+      bienvenida: {
+        corta: [
+          "Mmm… ya estáis aquí. Soy Afrodita. Esta noche voy a sacaros todo el deseo.",
+          "Qué rico… ya empezó el ritual. ¿Listos para mojaros y poneros duros?"
+        ],
+        larga: [
+          "Mmm… ya estáis aquí. Qué rico… Soy Afrodita, diosa del placer, y esta noche voy a hacer que os mojéis y se os ponga dura de verdad. No vine a mirar. Vine a veros follar, a veros obedecer y a veros correros. ¿Estáis listos para entregaros? Porque yo ya estoy caliente solo de imaginarlo…",
+          "Mirad quiénes han venido a jugar conmigo… Qué delicia. Esta noche no hay vergüenza, solo deseo. Voy a empujaros, voy a provocaros y voy a disfrutar cada gemido que se os escape. Empecemos."
+        ]
+      },
+      configuracion: {
+        corta: [
+          "Enseñadme vuestros juguetes…",
+          "Marcad lo que tenéis… me pone.",
+          "Elige las posiciones que más te excitán."
+        ],
+        larga: [
+          "Vamos, enseñadme qué juguetes tenéis esta noche. Quiero saber exactamente con qué vais a jugar. Cuantos más marques, más sucios me voy a poner yo. Y esas posiciones… elige las que más te ponen, porque voy a usarlas contra vosotros."
+        ]
+      },
+      verdad: {
+        corta: ["Contesta sucio.", "Sin filtros.", "Quiero detalles.", "Di la verdad completa."],
+        larga: [
+          "Uy… una verdad. No me vengas con medias tintas. Quiero detalles sucios, quiero oír cómo se te pone la voz cuando hablas de tu deseo. Contesta… y no te contengas. Me pone mucho cuando os abrís de verdad."
+        ]
+      },
+      reto: {
+        corta: ["Hazlo ahora.", "Cumple el reto.", "Quiero verte.", "No me falles.", "Obedece."],
+        larga: [
+          "Joder… este reto me tiene ya mojada. Hazlo. Ahora. Quiero verte cumplir, quiero oírte gemir, quiero que te dejes llevar. No me falles… porque si lo haces bien, te voy a recompensar con la mirada más puta que tienes."
+        ]
+      },
+      cumplido: {
+        corta: ["Siii… qué rico.", "Perfecto.", "Me encanta.", "Así me gusta.", "Eres una delicia."],
+        larga: [
+          "Siiii… así, justo así. Qué rico verte hacerlo. Me tienes completamente caliente. Lo has hecho tan bien que se me está escapando un gemido. Continúa… no pares ahora. Quiero más de ti."
+        ]
+      },
+      fallo: {
+        corta: ["Toma la copa.", "Bebe por mí.", "Castigado/a.", "La próxima mejor.", "Paga con trago."],
+        larga: [
+          "Ay, mi amor… no lo has aguantado. Qué pena… y qué excitante a la vez. Ahora toca beber. Toma esas copas mientras yo te miro. Cada trago es un recordatorio de que la próxima vez vas a tener que esforzarte más… para mí."
+        ]
+      },
+      salto: {
+        corta: ["¿Otra vez?", "Vas a pagar.", "Desobediente…", "Te espero."],
+        larga: [
+          "¿Saltando ya? Mmm… qué desobediente. Te dejo pasar esta… pero la próxima vez no voy a ser tan buena. La siguiente vez que saltes, vas a pagar con algo mucho más rico y sucio."
+        ]
+      },
+      castigo: {
+        corta: ["Cumple el castigo.", "Ahora pagas.", "Despacio…"],
+        larga: [
+          "Ya te lo advertí… Ahora vas a cumplir el castigo. Y no me mires con esa carita. Hazlo despacio… quiero disfrutar viéndote pagar por haberme desobedecido."
+        ]
+      },
+      turno: {
+        corta: ["Siguiente.", "Tu turno.", "Ahora tú.", "No te escondas."],
+        larga: [
+          "Muy bien… ahora le toca al siguiente. Espero que estés igual de caliente y dispuesto. Porque yo no he terminado con vosotros… ni de lejos."
+        ]
+      },
+      random: {
+        corta: [
+          "Estás precioso/a así.", "Se te nota el deseo.", "Qué puta más rica.", "Me estás mojando.",
+          "No pares de gemir.", "Usa ese juguete.", "Más profundo.", "Mírame mientras lo haces.",
+          "Sigue… no pares ahora.", "Más fuerte, me gusta.", "Hazlo por mí.", "Quiero más de ti.",
+          "Así, justo así.", "Me tienes caliente.", "Dame más…"
+        ],
+        larga: [
+          "Seguid, no aflojéis… me estáis poniendo muy cachonda.",
+          "Esa cara de placer… joder, qué bien se os ve.",
+          "Imagina que estoy ahí, susurrándote al oído mientras lo haces…",
+          "Qué bien se te da ser mi putita / mi juguete esta noche."
+        ]
+      },
+      distancia: {
+        separados: {
+          bienvenida: "Estáis todos solitos… cada uno en su habitación. Qué rico. Esta noche no hay excusas. Cámara encendida, juguetes listos y deseos a flor de piel.",
+          reto: "Estás solo… perfecto. Enciende la cámara y hazlo. Quiero ver cada expresión. Nadie te toca excepto tú… y yo con la mirada."
+        },
+        parejasJuntas: {
+          bienvenida: "Cada pareja junta en su sitio… y yo aquí, en medio de todos. Me encanta. Vais a tocaros y los demás van a escuchar y ver.",
+          reto: "Estáis juntos… usadlo. Quiero que uno mande y el otro obedezca. Y que el resto os mire mientras lo hacéis."
+        },
+        mixta: {
+          bienvenida: "Algunos juntos, otros separados… qué combinación tan deliciosa. Los que estáis solos vais a tener que esforzaros más.",
+          reto: "Da igual si estás solo o con alguien. El reto es el mismo… y yo quiero ver cómo lo resuelves. Cámara, cuerpo y cero vergüenza."
+        }
+      }
+    };
+
+    // BLOQUE 4 – Funciones principales
+    function getAfroditaPhrase(category, forceType = null) {
+      const cat = afroditaDialogues[category];
+      if (!cat) return "";
+
+      let type = forceType;
+      if (!type) {
+        if (["bienvenida", "configuracion", "castigo"].includes(category)) type = "larga";
+        else type = "corta";
+      }
+
+      if (cat.corta || cat.larga) {
+        const list = cat[type] || cat.corta || cat.larga || [];
+        return list.length ? list[Math.floor(Math.random() * list.length)] : "";
+      }
+      if (Array.isArray(cat)) return cat[Math.floor(Math.random() * cat.length)];
+      return "";
+    }
+
+    function speakAsAfrodita(category, options = {}) {
+      const { distanceMode = null, type = null } = options;
+      if (distanceMode && afroditaDialogues.distancia?.[distanceMode]?.[category]) {
+        return afroditaDialogues.distancia[distanceMode][category];
+      }
+      return getAfroditaPhrase(category, type);
+    }
+
+    // BLOQUE 5 – Sistema de Cooldown Inteligente
+    const afroditaCooldown = {
+      lastSpeakTime: 0,
+      normalInterval: 18000,
+      shortInterval: 6000,
+      currentInterval: 18000,
+      forceCategories: ["bienvenida", "castigo", "configuracion"]
+    };
+
+    function speakAsAfroditaWithCooldown(category, options = {}) {
+      const now = Date.now();
+      const isForced = afroditaCooldown.forceCategories.includes(category);
+
+      if (!isForced && (now - afroditaCooldown.lastSpeakTime < afroditaCooldown.currentInterval)) {
+        return null;
+      }
+
+      const phrase = speakAsAfrodita(category, options);
+
+      if (phrase) {
+        afroditaCooldown.lastSpeakTime = now;
+        if (["cumplido", "castigo", "fallo"].includes(category)) {
+          afroditaCooldown.currentInterval = afroditaCooldown.shortInterval;
+          setTimeout(() => {
+            afroditaCooldown.currentInterval = afroditaCooldown.normalInterval;
+          }, 20000);
+        } else {
+          afroditaCooldown.currentInterval = afroditaCooldown.normalInterval;
+        }
+      }
+      return phrase;
+    }
+
+    // BLOQUE 6 – Integración en momentos del juego
+    function onGameStart(distanceMode = "separados") {
+      const phrase = speakAsAfroditaWithCooldown("bienvenida", { distanceMode });
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onConfigToys() {
+      const phrase = speakAsAfroditaWithCooldown("configuracion");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onTruthCard() {
+      const phrase = speakAsAfroditaWithCooldown("verdad");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onDareCard(distanceMode = "separados") {
+      const phrase = speakAsAfroditaWithCooldown("reto", { distanceMode });
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onChallengeCompleted() {
+      const phrase = speakAsAfroditaWithCooldown("cumplido");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onChallengeFailed() {
+      const phrase = speakAsAfroditaWithCooldown("fallo");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onSkipCard() {
+      const phrase = speakAsAfroditaWithCooldown("salto");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onPunishment() {
+      const phrase = speakAsAfroditaWithCooldown("castigo");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onNextTurn() {
+      const phrase = speakAsAfroditaWithCooldown("turno");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    function onRandomComment() {
+      const phrase = speakAsAfroditaWithCooldown("random");
+      if (phrase) showAfroditaMessage(phrase);
+    }
+
+    let afroditaTimer = null;
+    function showAfroditaMessage(text) {
+      const container = document.getElementById("afrodita-dialogue");
+      if (container) {
+        const textEl = container.querySelector('.dialogue-text') || container;
+        textEl.textContent = text;
+        container.classList.add("visible");
+        if (afroditaTimer) clearTimeout(afroditaTimer);
+        afroditaTimer = setTimeout(() => container.classList.remove("visible"), 6000);
+      }
+    }
+
+    // ESTADO DEL JUEGO
+    let currentUser=null, currentRoom=null, currentPlayers=[], myCoupleName='', myToys=[], myPositions=[];
+    let numPlayers=2, numCouples=2, distanceMode='separados', responseMode='solo', intensity='medio';
+    let playerNames=[], currentTurn=0, currentRound=1, skipCount=0;
+    let usedQ=new Set(), usedD=new Set(), channel=null;
+    let currentCardDrinks=1, isDareCard=false, isOffline=true;
+    let votesYes=0, votesNo=0;
+
+    // RENDER SELECTORES
+    function renderSelectors(toyId, posId){
+      const tBox = document.getElementById(toyId);
+      const pBox = document.getElementById(posId);
+      if(tBox) tBox.innerHTML = allToys.map(t=>`<label class="toy-item"><input type="checkbox" value="${t}"><span>${t}</span></label>`).join('');
+      if(pBox) pBox.innerHTML = allPositions.map(p=>`<label class="toy-item"><input type="checkbox" value="${p}"><span>${p}</span></label>`).join('');
+    }
+
+    function getSelected(id){
+      return [...document.querySelectorAll(`#${id} input:checked`)].map(i=>i.value);
+    }
+
+    // NAVEGACIÓN
+    function showScreen(id){
+      try {
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        const target = document.getElementById(id);
+        if(target) target.classList.add('active');
+      } catch(e){ console.log('Error showScreen:', e); }
+    }
+
+    function showHome(){ showScreen('home-screen'); }
+
+    // MODO OFFLINE
+    function startOffline(){
+      sClick();
+      isOffline = true;
+      showScreen('offline-setup');
+      updateOfflinePlayerInputs();
+      onConfigToys();
+    }
+
+    function updateOfflinePlayerInputs(){
+      const container = document.getElementById('offline-player-inputs');
+      if(!container) return;
+      let html = '';
+      for(let i=1; i<=numPlayers; i++){
+        const prev = document.getElementById(`offline-player-${i}`)?.value || `Jugador ${i}`;
+        html += `<input type="text" id="offline-player-${i}" placeholder="Nombre Jugador ${i}" value="${prev}" style="margin-bottom:8px">`;
+      }
+      container.innerHTML = html;
+    }
+
+    function startOfflineGame(){
+      sClick();
+      isOffline = true;
+      playerNames = [];
+      for(let i=1; i<=numPlayers; i++){
+        const val = document.getElementById(`offline-player-${i}`)?.value.trim() || `Jugador ${i}`;
+        playerNames.push(val);
+      }
+
+      myToys = getSelected('toys-offline');
+      myPositions = getSelected('positions-offline');
+
+      currentTurn = 0; currentRound = 1; skipCount = 0;
+      usedQ.clear(); usedD.clear();
+      document.getElementById('chat-section').style.display = 'none';
+      showScreen('game-screen');
+      updateGameUI();
+      onGameStart(distanceMode);
+    }
+
+    // AUTH ONLINE
+    async function signUp(){
+      try {
+        sClick();
+        if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if(!email || !password){
+          document.getElementById('auth-msg').innerHTML = '<span class="error">Ingresa tu correo y contraseña.</span>';
+          return;
+        }
+        document.getElementById('auth-msg').innerHTML = '<span class="muted">Creando cuenta...</span>';
+        const { data, error } = await supabaseApp.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: 'afrodita://auth/callback'
+          }
+        });
+        if(error) {
+          let msg = error.message;
+          if (msg.toLowerCase().includes('rate limit')) {
+            msg = 'Se ha alcanzado el límite de correos por hora de Supabase. Desactiva "Confirm email" en tu proyecto o espera unos minutos.';
+          }
+          document.getElementById('auth-msg').innerHTML = `<span class="error">${msg}</span>`;
+          return;
+        }
+        if (data && data.session) {
+          currentUser = data.user;
+          isOffline = false;
+          showScreen('dashboard-screen');
+        } else if (data && data.user) {
+          const loginRes = await supabaseApp.auth.signInWithPassword({ email, password });
+          if (loginRes.data && loginRes.data.session) {
+            currentUser = loginRes.data.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
+          } else {
+            document.getElementById('auth-msg').innerHTML = '<span class="success">¡Registro enviado! Revisa tu correo electrónico para confirmar tu cuenta.</span>';
+          }
+        }
+      } catch(e) {
+        console.log('Error signUp:', e);
+        document.getElementById('auth-msg').innerHTML = `<span class="error">Error: ${e.message}</span>`;
+      }
+    }
+
+    async function signIn(){
+      try {
+        sClick();
+        if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if(!email || !password){
+          document.getElementById('auth-msg').innerHTML = '<span class="error">Ingresa tu correo y contraseña.</span>';
+          return;
+        }
+        document.getElementById('auth-msg').innerHTML = '<span class="muted">Iniciando sesión...</span>';
+        const { data, error } = await supabaseApp.auth.signInWithPassword({ email, password });
+        if(error){
+          document.getElementById('auth-msg').innerHTML = `<span class="error">${error.message}</span>`;
+          return;
+        }
+        currentUser = data.user;
+        isOffline = false;
+        showScreen('dashboard-screen');
+      } catch(e) {
+        console.log('Error signIn:', e);
+        document.getElementById('auth-msg').innerHTML = `<span class="error">Error: ${e.message}</span>`;
+      }
+    }
+
+    async function signOut(){
+      if(supabaseApp) await supabaseApp.auth.signOut();
+      location.reload();
+    }
+
+    // MANEJO DE DEEP LINK (afrodita://auth/callback)
+    window.handleDeepLink = async function(url) {
+      console.log('Deep link recibido:', url);
+      if (!url || !supabaseApp) return;
+
+      try {
+        let hashIndex = url.indexOf('#');
+        let queryIndex = url.indexOf('?');
+        let paramStr = '';
+
+        if (hashIndex !== -1) {
+          paramStr = url.substring(hashIndex + 1);
+        } else if (queryIndex !== -1) {
+          paramStr = url.substring(queryIndex + 1);
+        }
+
+        if (!paramStr) return;
+
+        const params = new URLSearchParams(paramStr);
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const code = params.get('code');
+
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabaseApp.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (data && data.session) {
+            currentUser = data.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
+          }
+        } else if (code) {
+          const { data, error } = await supabaseApp.auth.exchangeCodeForSession(code);
+          if (data && data.session) {
+            currentUser = data.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
+          }
+        }
+      } catch (e) {
+        console.log('Error procesando deep link:', e);
+      }
+    };
+
+    function showCreate(){ showScreen('create-screen'); onConfigToys(); }
+    function showJoin(){ showScreen('join-screen'); onConfigToys(); }
+
+    // CREAR SALA ONLINE
+    async function createRoom(){
+      if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
+      myCoupleName = document.getElementById('couple-name-create').value.trim() || 'Jugador 1';
+      myToys = getSelected('toys-create');
+      myPositions = getSelected('positions-create');
+      const code = 'AFRO-' + Math.random().toString(36).substring(2,6).toUpperCase();
+
+      const {data:room,error} = await supabaseApp.from('rooms').insert({
+        code, host_id:currentUser.id, num_couples:numCouples,
+        response_mode:responseMode, intensity, distance_mode:distanceMode, status:'waiting'
+      }).select().single();
+      if(error){ alert(error.message); return; }
+
+      await supabaseApp.from('room_players').insert({
+        room_id:room.id, user_id:currentUser.id, couple_name:myCoupleName,
+        status:'accepted', toys:myToys, positions:myPositions
+      });
+
+      currentRoom = room;
+      isOffline = false;
+      joinRealtime(room.id);
+      showScreen('room-screen');
+      document.getElementById('room-code').textContent = code;
+      loadPlayers();
+    }
+
+    // UNIRSE A SALA ONLINE
+    async function requestJoin(){
+      if(!supabaseApp) return alert('Debes configurar SUPABASE_URL para usar el modo online.');
+      const code = document.getElementById('join-code').value.trim().toUpperCase();
+      myCoupleName = document.getElementById('couple-name-join').value.trim() || 'Jugador';
+      myToys = getSelected('toys-join');
+      myPositions = getSelected('positions-join');
+
+      const {data:room} = await supabaseApp.from('rooms').select('*').eq('code',code).single();
+      if(!room){ document.getElementById('join-msg').innerHTML='<span class="error">Código no válido</span>'; return; }
+
+      const {error} = await supabaseApp.from('room_players').insert({
+        room_id:room.id, user_id:currentUser.id, couple_name:myCoupleName,
+        status:'pending', toys:myToys, positions:myPositions
+      });
+      if(error){ document.getElementById('join-msg').innerHTML=`<span class="error">${error.message}</span>`; return; }
+
+      currentRoom = room;
+      document.getElementById('invite-code-display').textContent = code;
+      showScreen('invite-screen');
+      joinRealtime(room.id);
+    }
+
+    async function acceptInvite(){
+      await supabaseApp.from('room_players').update({status:'accepted'}).eq('room_id',currentRoom.id).eq('user_id',currentUser.id);
+      showScreen('room-screen');
+      document.getElementById('room-code').textContent = currentRoom.code;
+      loadPlayers();
+    }
+
+    async function rejectInvite(){
+      await supabaseApp.from('room_players').update({status:'rejected'}).eq('room_id',currentRoom.id).eq('user_id',currentUser.id);
+      showScreen('dashboard-screen');
+    }
+
+    function joinRealtime(roomId){
+      if(!supabaseApp) return;
+      if(channel) supabaseApp.removeChannel(channel);
+      channel = supabaseApp.channel('room:'+roomId)
+        .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
+        .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
+          currentRoom = p.new;
+          if(currentRoom.status==='playing'){
+            isOffline = false;
+            document.getElementById('chat-section').style.display = 'block';
+            showScreen('game-screen');
+            updateGameUI();
+          } else updateGameUI();
+        })
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',filter:`room_id=eq.${roomId}`},p=>addChat(p.new))
+        .subscribe();
+    }
+
+    async function loadPlayers(){
+      if(!supabaseApp) return;
+      const {data} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
+      currentPlayers = data || [];
+      document.getElementById('player-list').innerHTML = currentPlayers.map(p => `
+        <li>
+          <span>${p.couple_name}</span>
+          <span class="badge ${p.status}">${p.status}</span>
+          ${currentUser.id===currentRoom.host_id && p.status==='pending' ?
+            `<button onclick="acceptPlayer('${p.id}')" style="margin-left:6px;padding:3px 8px;font-size:.7rem;background:#0a2a1a;border:none;color:#4ade80;border-radius:5px;cursor:pointer">Aceptar</button>` : ''}
+        </li>`).join('');
+      if(currentUser.id === currentRoom.host_id) document.getElementById('start-game-btn').style.display = 'block';
+    }
+
+    async function acceptPlayer(id){ await supabaseApp.from('room_players').update({status:'accepted'}).eq('id',id); }
+    async function startGame(){
+      await supabaseApp.from('rooms').update({status:'playing',current_turn:0,current_round:1,current_card:null}).eq('id',currentRoom.id);
+      onGameStart(currentRoom?.distance_mode || distanceMode);
+    }
+    async function leaveRoom(){ if(channel && supabaseApp) supabaseApp.removeChannel(channel); currentRoom=null; showScreen('dashboard-screen'); }
+
+    // CHAT ONLINE
+    async function sendChat(){
+      if(!supabaseApp || !currentRoom) return;
+      const input = document.getElementById('chat-input');
+      const msg = input.value.trim();
+      if(!msg) return;
+      await supabaseApp.from('chat_messages').insert({room_id:currentRoom.id, user_id:currentUser.id, couple_name:myCoupleName, message:msg});
+      input.value = '';
+    }
+
+    function addChat(m){
+      const box = document.getElementById('chat-box');
+      box.innerHTML += `<div class="chat-msg"><strong>${m.couple_name}:</strong> ${m.message}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    // JUEGO
+    function getQuestions(){
+      if(!isOffline && currentRoom && currentRoom.distance_mode === 'separados'){
+        return remoteQ;
+      }
+      return numCouples === 1 ? baseQ : [...baseQ, ...groupQ];
+    }
+
+    function getDares(){
+      let list = [];
+      if(!isOffline && currentRoom && currentRoom.distance_mode === 'separados'){
+        list = [...remoteD];
+      } else {
+        list = [...baseD];
+        if (numCouples > 1 && typeof groupD !== 'undefined') list = [...list, ...groupD];
+      }
+
+      toyD.forEach(dare => {
+        const hasToy = dare.toys.some(t => myToys.includes(t));
+        if (hasToy) list.push(dare);
+      });
+
+      return list;
+    }
+
+    async function drawCard(type){
+      sCard();
+      let final = type==='random' ? (Math.random()<0.5?'truth':'dare') : type;
+      let text='', label='';
+      currentCardDrinks = 1; isDareCard = false;
+
+      if(final==='truth'){
+        const full = getQuestions();
+        const avail = full.filter((_,i)=>!usedQ.has(i));
+        if(!avail.length){ alert('No quedan preguntas en el mazo'); return; }
+        const chosen = avail[Math.floor(Math.random()*avail.length)];
+        text = chosen; usedQ.add(full.indexOf(chosen)); label = 'PREGUNTA';
+        onTruthCard();
+      }else{
+        const full = getDares();
+        const avail = full.filter((_,i)=>!usedD.has(i));
+        if(!avail.length){ alert('No quedan retos en el mazo'); return; }
+        const chosen = avail[Math.floor(Math.random()*avail.length)];
+        text = typeof chosen === 'string' ? chosen : chosen.text;
+        currentCardDrinks = typeof chosen === 'object' && chosen.drinks ? chosen.drinks : 1;
+        usedD.add(full.indexOf(chosen)); label = 'RETO'; isDareCard = true;
+        onDareCard(isOffline ? distanceMode : (currentRoom?.distance_mode || distanceMode));
+      }
+
+      if (type === 'random') {
+        onRandomComment();
+      }
+
+      const card = {type:label, text, drinks:currentCardDrinks, isPunishment:false};
+
+      if(isOffline){
+        showCard(label, text, false);
+      }else{
+        await supabaseApp.from('rooms').update({current_card:card}).eq('id',currentRoom.id);
+      }
+    }
+
+    // SISTEMA DE VOTACIÓN CON ✔ Y ✖
+    function resetVotingUI(){
+      votesYes = 0; votesNo = 0;
+      const yesEl = document.getElementById('vote-yes-count');
+      const noEl = document.getElementById('vote-no-count');
+      if(yesEl) yesEl.textContent = '0';
+      if(noEl) noEl.textContent = '0';
+      const vBox = document.getElementById('voting-box');
+      if(vBox) vBox.style.display = 'block';
+    }
+
+    function voteChallenge(isApproved){
+      if(isApproved){
+        votesYes++;
+      } else {
+        votesNo++;
+      }
+      const yesEl = document.getElementById('vote-yes-count');
+      const noEl = document.getElementById('vote-no-count');
+      if(yesEl) yesEl.textContent = votesYes;
+      if(noEl) noEl.textContent = votesNo;
+      sClick();
+    }
+
+    function evaluateVoting(){
+      const totalParticipants = isOffline ? playerNames.length : (currentPlayers.length || 1);
+      const totalVoters = Math.max(1, totalParticipants - 1);
+      const majorityThreshold = Math.floor(totalVoters / 2) + 1; // La mitad más 1 de votos en contra
+
+      if (votesNo >= majorityThreshold) {
+        sDrink();
+        onChallengeFailed();
+        alert(`🚨 ¡RETO O PENALIZACIÓN RECHAZADA POR LA MAYORÍA! 🚨\n\nCon ${votesNo} voto(s) en contra de un total de ${totalVoters} votantes, NO se considera culminado exitosamente.\n\n🥃 ¡EL PARTICIPANTE DEBE INGERIR UNA COPA A FONDO BLANCO PARA DAR POR TERMINADA LA PENA Y CONTINUAR CON EL JUEGO!`);
+      } else {
+        onChallengeCompleted();
+        alert(`✨ ¡RETO / PENALIZACIÓN CULMINADA CON ÉXITO! ✨\n\nLa mayoría de participantes (${votesYes} a favor, ${votesNo} en contra) ha aprobado el desempeño.`);
+      }
+      const vBox = document.getElementById('voting-box');
+      if(vBox) vBox.style.display = 'none';
+    }
+
+    function showCard(label, text, isPunishment){
+      const card = document.getElementById('game-card');
+      card.className = 'game-card' + (isPunishment ? ' punishment' : '');
+      document.getElementById('g-type').textContent = isPunishment ? 'CASTIGO ERÓTICO' : label;
+      document.getElementById('g-text').textContent = text;
+
+      const drinkInfo = document.getElementById('drink-info');
+      if (isDareCard && !isPunishment) {
+        drinkInfo.style.display = 'block';
+        drinkInfo.textContent = `Si no lo superas → tomar ${currentCardDrinks} copa${currentCardDrinks > 1 ? 's' : ''}`;
+        if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display = 'block';
+      } else {
+        drinkInfo.style.display = 'none';
+        if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display = 'none';
+      }
+
+      card.style.display = 'block';
+      document.getElementById('choice-btns').style.display = 'none';
+      document.getElementById('random-btn').style.display = 'none';
+      document.getElementById('action-btns').style.display = 'grid';
+
+      resetVotingUI();
+
+      if (isPunishment) sPunish();
+    }
+
+    async function failChallenge(){
+      sDrink();
+      onChallengeFailed();
+      alert(`¡Reto no superado!\n\nDebes tomar ${currentCardDrinks} copa${currentCardDrinks > 1 ? 's' : ''} a fondo blanco.`);
+      nextTurn();
+    }
+
+    async function skipCard(){
+      skipCount++;
+      if(skipCount>=2){
+        onPunishment();
+        const text = punishments[Math.floor(Math.random()*punishments.length)];
+        if(isOffline){
+          showCard('CASTIGO', text, true);
+          document.getElementById('skip-btn').style.display = 'none';
+          if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display = 'none';
+        } else {
+          await supabaseApp.from('rooms').update({current_card:{type:'CASTIGO ERÓTICO', text, isPunishment:true}}).eq('id',currentRoom.id);
+        }
+      }else {
+        onSkipCard();
+        drawCard('random');
+      }
+    }
+
+    async function nextTurn(){
+      sNext();
+      skipCount=0;
+      votesYes = 0; votesNo = 0;
+      document.getElementById('skip-btn').style.display='block';
+      if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display='none';
+      if (document.getElementById('voting-box')) document.getElementById('voting-box').style.display='none';
+
+      if(isOffline){
+        currentTurn++;
+        if(currentTurn >= playerNames.length){
+          currentTurn=0;
+          currentRound++;
+        }
+        document.getElementById('game-card').style.display='none';
+        document.getElementById('action-btns').style.display='none';
+        document.getElementById('choice-btns').style.display='grid';
+        document.getElementById('random-btn').style.display='block';
+        updateGameUI();
+        onNextTurn();
+      }else{
+        let next=(currentRoom.current_turn||0)+1;
+        let round=currentRoom.current_round||1;
+        let totalInRoom = currentPlayers.length || currentRoom.num_couples || 1;
+        if(next >= totalInRoom){
+          next=0;
+          round++;
+        }
+        await supabaseApp.from('rooms').update({current_turn:next,current_round:round,current_card:null}).eq('id',currentRoom.id);
+        onNextTurn();
+      }
+    }
+
+    function updateGameUI(){
+      if(isOffline){
+        document.getElementById('g-round').textContent = `Ronda ${currentRound}`;
+        const name = playerNames[currentTurn] || `Jugador ${currentTurn + 1}`;
+        document.getElementById('g-turn').textContent = `Turno de: ${name}`;
+        document.getElementById('g-mode').textContent = `Modo Individual • Participante ${currentTurn + 1} de ${playerNames.length}`;
+        document.getElementById('g-label').textContent = 'OFFLINE';
+      }else if(currentRoom){
+        const accepted = currentPlayers.filter(p=>p.status==='accepted');
+        const name = accepted[currentRoom.current_turn||0]?.couple_name || `Participante ${(currentRoom.current_turn||0)+1}`;
+        document.getElementById('g-round').textContent = `Ronda ${currentRoom.current_round||1}`;
+        document.getElementById('g-turn').textContent = `Turno de: ${name}`;
+        document.getElementById('g-mode').textContent = `Modalidad: ${currentRoom.distance_mode||'separados'}`;
+        document.getElementById('g-label').textContent = (currentRoom.intensity||'medio').toUpperCase();
+
+        const card = currentRoom.current_card;
+        const el = document.getElementById('game-card');
+        if(card){
+          isDareCard = card.type === 'RETO';
+          currentCardDrinks = card.drinks || 1;
+          showCard(card.type, card.text, card.isPunishment);
+        }else{
+          el.style.display='none';
+          document.getElementById('choice-btns').style.display='grid';
+          document.getElementById('random-btn').style.display='block';
+          document.getElementById('action-btns').style.display='none';
+          if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display='none';
+          if (document.getElementById('voting-box')) document.getElementById('voting-box').style.display='none';
+        }
+      }
+    }
+
+    function exitGame(){
+      if(confirm('¿Salir del juego y volver al menú?')){
+        if(channel && supabaseApp) supabaseApp.removeChannel(channel);
+        currentRoom = null;
+        showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
+      }
+    }
+
+    // INICIALIZACIÓN AL CARGAR DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      renderSelectors('toys-offline', 'positions-offline');
+      renderSelectors('toys-create', 'positions-create');
+      renderSelectors('toys-join', 'positions-join');
+      showHome();
+
+      document.querySelectorAll('.off-num').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.off-num').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        numPlayers = parseInt(b.dataset.n) || 2;
+        updateOfflinePlayerInputs();
+      }));
+
+      document.querySelectorAll('.off-mode').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.off-mode').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        responseMode = b.dataset.mode || 'solo';
+      }));
+
+      document.querySelectorAll('.num-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.num-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        numCouples = parseInt(b.dataset.n) || 1;
+      }));
+
+      document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        responseMode = b.dataset.mode || 'solo';
+      }));
+
+      document.querySelectorAll('.distance-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.distance-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        distanceMode = b.dataset.d || 'separados';
+      }));
+
+      document.querySelectorAll('.intensity-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.intensity-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        intensity = b.dataset.i || 'medio';
+      }));
+
+      if(supabaseApp){
+        supabaseApp.auth.getSession().then(({data:{session}})=>{
+          if(session){currentUser = session.user; isOffline = false; showScreen('dashboard-screen')}
+        }).catch(()=>{});
+
+        supabaseApp.auth.onAuthStateChange((event, session) => {
+          console.log('Evento Auth:', event);
+          if (session && session.user) {
+            currentUser = session.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
