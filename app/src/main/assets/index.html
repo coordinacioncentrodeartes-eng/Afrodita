@@ -343,6 +343,11 @@
       📱 Jugar Offline (Un solo teléfono)
     </button>
     <button class="btn btn-secondary" onclick="showScreen('login-screen')">🌐 Jugar Online (Varios teléfonos)</button>
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="forceResetApp()" style="background:transparent;border:none;color:var(--muted);font-size:0.75rem;text-decoration:underline;cursor:pointer">
+        🔄 Restablecer datos guardados
+      </button>
+    </div>
   </div>
 
   <!-- LOGIN ONLINE -->
@@ -392,7 +397,8 @@
     <div class="subtitle">Modo Online</div>
     <button class="btn btn-primary" onclick="showCreate()">Crear Ritual Online</button>
     <button class="btn btn-secondary" onclick="showJoin()">Unirme con código</button>
-    <button class="btn btn-secondary" style="margin-top:14px" onclick="signOut()">Cerrar sesión</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="forceResetApp()">🔄 Limpiar sesión de partida</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="signOut()">Cerrar sesión</button>
   </div>
 
   <!-- CREAR ONLINE -->
@@ -517,8 +523,11 @@
     <div class="card" style="text-align:center;padding:22px 16px">
       <h3 style="color:#4ade80;margin-bottom:10px;font-family:'Playfair Display',serif;font-size:1.3rem">El anfitrión te ha dejado entrar a la sala</h3>
       <p style="color:var(--text);font-size:0.9rem;margin-bottom:18px">Espera a que inicie el ritual…</p>
-      <button class="btn btn-secondary" disabled style="opacity:0.8;cursor:not-allowed;font-size:0.88rem;width:100%">
+      <button class="btn btn-secondary" disabled style="opacity:0.8;cursor:not-allowed;font-size:0.88rem;width:100%;margin-bottom:8px">
         ⏳ Esperando que el anfitrión comience…
+      </button>
+      <button class="btn btn-secondary" style="font-size:0.85rem" onclick="leaveRoom()">
+        ← Salir de la sala
       </button>
     </div>
   </div>
@@ -735,7 +744,7 @@
       "¿Qué te gustaría que te hiciera si estuviera a tu lado en este instante?",
       "Describe con detalle cómo te masturbarías pensando en mí esta noche.",
       "¿Qué juguete te gustaría que usara frente a la cámara?",
-      "¿Te excita más verme en la pantalla o saber que yo te estoy observando?",
+      "¿Te excita máserme en la pantalla o saber que yo te estoy observando?",
       "¿Qué posición erótica te gustaría practicar la próxima vez que estemos juntos?",
       "¿Has usado algún juguete pensando en mí últimamente?",
       "¿Qué me pedirías que hiciera en este momento por videollamada?",
@@ -1111,10 +1120,24 @@
           currentRoom = data.currentRoom;
         }
 
-        // Si es una partida Online activa, reconectar en tiempo real con Supabase
-        if (!isOffline && currentRoom && currentRoom.id) {
-          joinRealtime(currentRoom.id);
-          loadPlayers();
+        // Si es una partida Online activa, verificar con Supabase si la sala aún existe
+        if (!isOffline && currentRoom && currentRoom.id && supabaseApp) {
+          supabaseApp.from('rooms').select('status').eq('id', currentRoom.id).single().then(({ data: rData, error }) => {
+            if (error || !rData) {
+              console.log('La sala guardada ya no existe en Supabase. Limpiando estado.');
+              clearGameState();
+              stopAllPolling();
+              currentRoom = null;
+              showScreen('dashboard-screen', false);
+            } else {
+              currentRoom.status = rData.status;
+              joinRealtime(currentRoom.id);
+              loadPlayers();
+            }
+          }).catch(() => {
+            joinRealtime(currentRoom.id);
+            loadPlayers();
+          });
         }
 
         if (isOffline && data.activeScreenId === 'offline-setup') {
@@ -1146,6 +1169,18 @@
       try {
         localStorage.removeItem('afrodita_game_state');
       } catch(e) {}
+    }
+
+    function forceResetApp() {
+      clearGameState();
+      stopAllPolling();
+      if (channel && supabaseApp) {
+        try { supabaseApp.removeChannel(channel); } catch(e){}
+      }
+      currentRoom = null;
+      currentPlayers = [];
+      alert("Partida guardada eliminada. Puedes iniciar un nuevo ritual.");
+      showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
     }
 
     // RENDER SELECTORES
@@ -1426,6 +1461,7 @@
         currentRoom = null;
       }
       clearGameState();
+      stopAllPolling();
       showScreen('dashboard-screen');
     }
 
@@ -1526,6 +1562,24 @@
 
     async function loadPlayers(){
       if(!supabaseApp || !currentRoom) return;
+
+      // 1. Consultar el estado actualizado de la sala (rooms) en Supabase por ID o por Código
+      try {
+        let query = supabaseApp.from('rooms').select('*');
+        if (currentRoom.id) {
+          query = query.eq('id', currentRoom.id);
+        } else if (currentRoom.code) {
+          query = query.eq('code', currentRoom.code);
+        }
+        const { data: roomData } = await query.single();
+        if (roomData) {
+          currentRoom = roomData;
+        }
+      } catch(e){
+        console.log('Error refrescando sala:', e);
+      }
+
+      // 2. Consultar los participantes (room_players)
       let {data, error} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
 
       if (error) {
@@ -1550,6 +1604,24 @@
       const pendingPlayers = currentPlayers.filter(p => p.status === 'pending');
 
       const isHost = currentUser && currentUser.id === currentRoom.host_id;
+
+      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO DE INMEDIATO PARA TODOS LOS JUGADORES ACEPTADOS O HOST
+      if (currentRoom.status === 'playing') {
+        stopRoomPolling();
+        startGamePolling();
+        isOffline = false;
+        if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
+          showScreen('transition-screen');
+          setTimeout(() => {
+            document.getElementById('chat-section').style.display = 'block';
+            showScreen('game-screen');
+            updateGameUI();
+          }, 2500);
+        } else {
+          updateGameUI();
+        }
+        return;
+      }
 
       // Notificación visual y sonora al anfitrión si hay nueva solicitud
       const pendingBanner = document.getElementById('pending-alert-banner');
@@ -1581,11 +1653,6 @@
             showScreen('pending-screen');
           } else if (myRecord.status === 'accepted' && currentRoom.status === 'waiting') {
             showScreen('accepted-wait-screen');
-          } else if (myRecord.status === 'accepted' && currentRoom.status === 'playing') {
-            stopRoomPolling();
-            startGamePolling();
-            showScreen('game-screen');
-            updateGameUI();
           } else if (myRecord.status === 'rejected') {
             alert('Tu solicitud ha sido rechazada por el anfitrión.');
             clearGameState();

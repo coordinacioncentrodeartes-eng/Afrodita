@@ -343,6 +343,11 @@
       📱 Jugar Offline (Un solo teléfono)
     </button>
     <button class="btn btn-secondary" onclick="showScreen('login-screen')">🌐 Jugar Online (Varios teléfonos)</button>
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="forceResetApp()" style="background:transparent;border:none;color:var(--muted);font-size:0.75rem;text-decoration:underline;cursor:pointer">
+        🔄 Restablecer datos guardados
+      </button>
+    </div>
   </div>
 
   <!-- LOGIN ONLINE -->
@@ -392,7 +397,8 @@
     <div class="subtitle">Modo Online</div>
     <button class="btn btn-primary" onclick="showCreate()">Crear Ritual Online</button>
     <button class="btn btn-secondary" onclick="showJoin()">Unirme con código</button>
-    <button class="btn btn-secondary" style="margin-top:14px" onclick="signOut()">Cerrar sesión</button>
+    <button class="btn btn-secondary" style="margin-top:10px" onclick="forceResetApp()">🔄 Limpiar sesión de partida</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="signOut()">Cerrar sesión</button>
   </div>
 
   <!-- CREAR ONLINE -->
@@ -1128,10 +1134,24 @@
           currentRoom = data.currentRoom;
         }
 
-        // Si es una partida Online activa, reconectar en tiempo real con Supabase
-        if (!isOffline && currentRoom && currentRoom.id) {
-          joinRealtime(currentRoom.id);
-          loadPlayers();
+        // Si es una partida Online activa, verificar con Supabase si la sala aún existe
+        if (!isOffline && currentRoom && currentRoom.id && supabaseApp) {
+          supabaseApp.from('rooms').select('status').eq('id', currentRoom.id).single().then(({ data: rData, error }) => {
+            if (error || !rData) {
+              console.log('La sala guardada ya no existe en Supabase. Limpiando estado.');
+              clearGameState();
+              stopAllPolling();
+              currentRoom = null;
+              showScreen('dashboard-screen', false);
+            } else {
+              currentRoom.status = rData.status;
+              joinRealtime(currentRoom.id);
+              loadPlayers();
+            }
+          }).catch(() => {
+            joinRealtime(currentRoom.id);
+            loadPlayers();
+          });
         }
 
         if (isOffline && data.activeScreenId === 'offline-setup') {
@@ -1163,6 +1183,18 @@
       try {
         localStorage.removeItem('afrodita_game_state');
       } catch(e) {}
+    }
+
+    function forceResetApp() {
+      clearGameState();
+      stopAllPolling();
+      if (channel && supabaseApp) {
+        try { supabaseApp.removeChannel(channel); } catch(e){}
+      }
+      currentRoom = null;
+      currentPlayers = [];
+      alert("Partida guardada eliminada. Puedes iniciar un nuevo ritual.");
+      showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
     }
 
     // RENDER SELECTORES
