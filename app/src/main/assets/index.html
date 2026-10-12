@@ -467,8 +467,23 @@
     </button>
     <p class="status" style="margin-bottom:12px;font-size:0.8rem">Comparte este código por WhatsApp con quienes quieras invitar.</p>
 
+    <!-- BANNER DE NOTIFICACIÓN DE SOLICITUDES PARA EL ANFITRIÓN -->
+    <div id="pending-alert-banner" style="display:none;background:rgba(212,175,55,0.22);border:1.5px solid var(--gold);border-radius:12px;padding:10px 12px;margin-bottom:12px;text-align:center">
+      <p style="font-size:0.88rem;color:var(--gold-light);font-weight:700;margin-bottom:4px">
+        🔔 ¡NUEVA SOLICITUD DE INGRESO!
+      </p>
+      <p style="font-size:0.8rem;color:var(--text)" id="pending-alert-text">
+        Alguien solicita unirse al ritual.
+      </p>
+    </div>
+
     <div class="card">
-      <div class="section-title" style="margin-top:0">Jugadores</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="section-title" style="margin:0">Jugadores</div>
+        <button onclick="loadPlayers()" style="background:transparent;border:1px solid var(--gold);color:var(--gold);padding:3px 8px;border-radius:6px;font-size:0.75rem;cursor:pointer;font-weight:600">
+          🔄 Actualizar
+        </button>
+      </div>
       <ul class="player-list" id="player-list"></ul>
     </div>
 
@@ -1423,14 +1438,36 @@
       }
     }
 
+    let roomPollInterval = null;
+
+    function startRoomPolling() {
+      stopRoomPolling();
+      roomPollInterval = setInterval(() => {
+        if (currentRoom && currentRoom.status === 'waiting') {
+          loadPlayers();
+        } else {
+          stopRoomPolling();
+        }
+      }, 2500);
+    }
+
+    function stopRoomPolling() {
+      if (roomPollInterval) {
+        clearInterval(roomPollInterval);
+        roomPollInterval = null;
+      }
+    }
+
     function joinRealtime(roomId){
       if(!supabaseApp) return;
       if(channel) supabaseApp.removeChannel(channel);
+      startRoomPolling();
       channel = supabaseApp.channel('room:'+roomId)
         .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
         .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
           currentRoom = p.new;
           if(currentRoom.status === 'playing'){
+            stopRoomPolling();
             isOffline = false;
             showScreen('transition-screen');
             setTimeout(() => {
@@ -1450,21 +1487,39 @@
 
     async function loadPlayers(){
       if(!supabaseApp || !currentRoom) return;
-      const {data} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
+      const {data, error} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
+      if (error) {
+        console.log('Error loadPlayers:', error);
+        return;
+      }
+
       currentPlayers = data || [];
-      const pendingPlayers = currentPlayers.filter(p=>p.status==='pending');
+      const pendingPlayers = currentPlayers.filter(p => p.status === 'pending');
 
-      const isHost = currentUser.id === currentRoom.host_id;
+      const isHost = currentUser && currentUser.id === currentRoom.host_id;
 
-      // Notificación de Afrodita al anfitrión si hay nueva solicitud
-      if (isHost && pendingPlayers.length > lastPendingCount) {
-        showAfroditaMessage("Alguien quiere entrar… ¿Lo dejas pasar?");
+      // Notificación visual y sonora al anfitrión si hay nueva solicitud
+      const pendingBanner = document.getElementById('pending-alert-banner');
+      const pendingBannerText = document.getElementById('pending-alert-text');
+
+      if (isHost && pendingPlayers.length > 0) {
+        if (pendingBanner) {
+          pendingBanner.style.display = 'block';
+          const names = pendingPlayers.map(p => p.couple_name).join(', ');
+          if (pendingBannerText) pendingBannerText.textContent = `${names} solicita${pendingPlayers.length > 1 ? 'n' : ''} unirse al ritual. Toca "Aceptar" abajo.`;
+        }
+        if (pendingPlayers.length > lastPendingCount) {
+          sNext();
+          showAfroditaMessage("Alguien quiere entrar… ¿Lo dejas pasar?");
+        }
+      } else {
+        if (pendingBanner) pendingBanner.style.display = 'none';
       }
       lastPendingCount = pendingPlayers.length;
 
       // Si el usuario no es el anfitrión, actualizar su pantalla según su estado individual
       if (!isHost) {
-        const myRecord = currentPlayers.find(p => p.user_id === currentUser.id);
+        const myRecord = currentPlayers.find(p => currentUser && p.user_id === currentUser.id);
         if (myRecord) {
           if (myRecord.status === 'pending') {
             showScreen('pending-screen');
@@ -1473,6 +1528,7 @@
           } else if (myRecord.status === 'rejected') {
             alert('Tu solicitud ha sido rechazada por el anfitrión.');
             clearGameState();
+            stopRoomPolling();
             showScreen('dashboard-screen');
             return;
           }
@@ -1519,6 +1575,7 @@
           return;
         }
 
+        stopRoomPolling();
         currentRoom.status = 'playing';
         isOffline = false;
 
@@ -1540,6 +1597,7 @@
 
     async function leaveRoom(){
       if(channel && supabaseApp) supabaseApp.removeChannel(channel);
+      stopRoomPolling();
       currentRoom = null;
       clearGameState();
       showScreen('dashboard-screen');
