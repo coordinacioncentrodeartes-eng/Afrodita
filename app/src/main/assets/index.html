@@ -810,6 +810,17 @@
        AFRODITA - PERSONAJE & DIÁLOGOS (BLOQUES 1, 2, 3, 4, 5, 6)
        ========================================================================== */
 
+    /**
+     * BLOQUE 1 – Prompt del Personaje (System Prompt)
+     * Eres Afrodita, la diosa griega del amor, el deseo, el placer y la seducción.
+     * Tono sensual, juguetón, dominante, provocativo y descarado.
+     *
+     * BLOQUE 2 – Prompt de Lenguaje Corporal
+     * Expresiones y animaciones sincronizadas con el diálogo (inclinación de cabeza,
+     * mirada lasciva, mordida de labio, sonrisa dominante).
+     */
+
+    // BLOQUE 3 – Base de datos de diálogos (JavaScript)
     const afroditaDialogues = {
       bienvenida: {
         corta: [
@@ -903,6 +914,7 @@
       }
     };
 
+    // BLOQUE 4 – Funciones principales
     function getAfroditaPhrase(category, forceType = null) {
       const cat = afroditaDialogues[category];
       if (!cat) return "";
@@ -929,6 +941,7 @@
       return getAfroditaPhrase(category, type);
     }
 
+    // BLOQUE 5 – Sistema de Cooldown Inteligente
     const afroditaCooldown = {
       lastSpeakTime: 0,
       normalInterval: 18000,
@@ -961,6 +974,7 @@
       return phrase;
     }
 
+    // BLOQUE 6 – Integración en momentos del juego
     function onGameStart(distanceMode = "separados") {
       const phrase = speakAsAfroditaWithCooldown("bienvenida", { distanceMode });
       if (phrase) showAfroditaMessage(phrase);
@@ -1161,15 +1175,11 @@
     }
 
     // NAVEGACIÓN
-    function showScreen(id, save = true){
+    function showScreen(id){
       try {
         document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         const target = document.getElementById(id);
-        if(target) {
-          target.classList.add('active');
-          activeScreenId = id;
-          if (save) saveGameState();
-        }
+        if(target) target.classList.add('active');
       } catch(e){ console.log('Error showScreen:', e); }
     }
 
@@ -1213,7 +1223,6 @@
       showScreen('game-screen');
       updateGameUI();
       onGameStart(distanceMode);
-      saveGameState();
     }
 
     // AUTH ONLINE
@@ -1290,7 +1299,6 @@
 
     async function signOut(){
       if(supabaseApp) await supabaseApp.auth.signOut();
-      clearGameState();
       location.reload();
     }
 
@@ -1350,7 +1358,7 @@
         navigator.clipboard.writeText(inviteText).then(() => {
           alert("¡Código de invitación copiado al portapapeles!\nComparte el enlace con tus invitados.");
         }).catch(() => {
-          alert(`Código de invitation: ${code}`);
+          alert(`Código de invitación: ${code}`);
         });
       } else {
         alert(`Código de invitación: ${code}`);
@@ -1425,7 +1433,6 @@
         if(channel) supabaseApp.removeChannel(channel);
         currentRoom = null;
       }
-      clearGameState();
       showScreen('dashboard-screen');
     }
 
@@ -1716,7 +1723,6 @@
       const noEl = document.getElementById('vote-no-count');
       if(yesEl) yesEl.textContent = votesYes;
       if(noEl) noEl.textContent = votesNo;
-      saveGameState();
       sClick();
     }
 
@@ -1735,10 +1741,9 @@
       }
       const vBox = document.getElementById('voting-box');
       if(vBox) vBox.style.display = 'none';
-      saveGameState();
     }
 
-    function showCard(label, text, isPunishment, save = true){
+    function showCard(label, text, isPunishment){
       const card = document.getElementById('game-card');
       card.className = 'game-card' + (isPunishment ? ' punishment' : '');
       document.getElementById('g-type').textContent = isPunishment ? 'CASTIGO ERÓTICO' : label;
@@ -1759,12 +1764,7 @@
       document.getElementById('random-btn').style.display = 'none';
       document.getElementById('action-btns').style.display = 'grid';
 
-      currentDisplayedCard = { label, text, isPunishment };
-
-      if (save) {
-        resetVotingUI();
-        saveGameState();
-      }
+      resetVotingUI();
 
       if (isPunishment) sPunish();
     }
@@ -1798,7 +1798,6 @@
       sNext();
       skipCount=0;
       votesYes = 0; votesNo = 0;
-      currentDisplayedCard = null;
       document.getElementById('skip-btn').style.display='block';
       if (document.getElementById('fail-btn')) document.getElementById('fail-btn').style.display='none';
       if (document.getElementById('voting-box')) document.getElementById('voting-box').style.display='none';
@@ -1815,7 +1814,6 @@
         document.getElementById('random-btn').style.display='block';
         updateGameUI();
         onNextTurn();
-        saveGameState();
       }else{
         let next=(currentRoom.current_turn||0)+1;
         let round=currentRoom.current_round||1;
@@ -1826,7 +1824,6 @@
         }
         await supabaseApp.from('rooms').update({current_turn:next,current_round:round,current_card:null}).eq('id',currentRoom.id);
         onNextTurn();
-        saveGameState();
       }
     }
 
@@ -1840,7 +1837,7 @@
       }else if(currentRoom){
         const accepted = currentPlayers.filter(p=>p.status==='accepted');
         const name = accepted[currentRoom.current_turn||0]?.couple_name || `Participante ${(currentRoom.current_turn||0)+1}`;
-        document.getElementById('g-round').textContent = `Ronda ${currentRound}`;
+        document.getElementById('g-round').textContent = `Ronda ${currentRoom.current_round||1}`;
         document.getElementById('g-turn').textContent = `Turno de: ${name}`;
         document.getElementById('g-mode').textContent = `Modalidad: ${currentRoom.distance_mode||'separados'}`;
         document.getElementById('g-label').textContent = (currentRoom.intensity||'medio').toUpperCase();
@@ -1850,7 +1847,7 @@
         if(card){
           isDareCard = card.type === 'RETO';
           currentCardDrinks = card.drinks || 1;
-          showCard(card.type, card.text, card.isPunishment, false);
+          showCard(card.type, card.text, card.isPunishment);
         }else{
           el.style.display='none';
           document.getElementById('choice-btns').style.display='grid';
@@ -1866,8 +1863,6 @@
       if(confirm('¿Salir del juego y volver al menú?')){
         if(channel && supabaseApp) supabaseApp.removeChannel(channel);
         currentRoom = null;
-        currentDisplayedCard = null;
-        clearGameState();
         showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
       }
     }
@@ -1877,12 +1872,7 @@
       renderSelectors('toys-offline', 'positions-offline');
       renderSelectors('toys-create', 'positions-create');
       renderSelectors('toys-join', 'positions-join');
-
-      // Restaurar estado guardado si el navegador/app se minimizó o reinició
-      const restored = restoreGameState();
-      if (!restored) {
-        showHome();
-      }
+      showHome();
 
       document.querySelectorAll('.off-num').forEach(b=>b.addEventListener('click', (e)=>{
         e.preventDefault();
@@ -1891,7 +1881,6 @@
         b.classList.add('active');
         numPlayers = parseInt(b.dataset.n) || 2;
         updateOfflinePlayerInputs();
-        saveGameState();
       }));
 
       document.querySelectorAll('.off-mode').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1900,7 +1889,6 @@
         document.querySelectorAll('.off-mode').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
-        saveGameState();
       }));
 
       document.querySelectorAll('.num-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1909,7 +1897,6 @@
         document.querySelectorAll('.num-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         numCouples = parseInt(b.dataset.n) || 1;
-        saveGameState();
       }));
 
       document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1918,7 +1905,6 @@
         document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
-        saveGameState();
       }));
 
       document.querySelectorAll('.distance-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1927,7 +1913,6 @@
         document.querySelectorAll('.distance-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         distanceMode = b.dataset.d || 'separados';
-        saveGameState();
       }));
 
       document.querySelectorAll('.intensity-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -1936,24 +1921,19 @@
         document.querySelectorAll('.intensity-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         intensity = b.dataset.i || 'medio';
-        saveGameState();
       }));
 
       if(supabaseApp){
         supabaseApp.auth.getSession().then(({data:{session}})=>{
-          if(session){
-            currentUser = session.user;
-            if (!restored) {
-              isOffline = false;
-              showScreen('dashboard-screen');
-            }
-          }
+          if(session){currentUser = session.user; isOffline = false; showScreen('dashboard-screen')}
         }).catch(()=>{});
 
         supabaseApp.auth.onAuthStateChange((event, session) => {
           console.log('Evento Auth:', event);
           if (session && session.user) {
             currentUser = session.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
           }
         });
       }
