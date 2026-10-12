@@ -1494,9 +1494,23 @@
 
     async function loadPlayers(){
       if(!supabaseApp || !currentRoom) return;
-      const {data, error} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
+      let {data, error} = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('joined_at');
+
       if (error) {
-        console.log('Error loadPlayers:', error);
+        console.log('Intento order(joined_at) falló, reintentando con order(created_at):', error.message);
+        const retry = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id).order('created_at');
+        if (retry.error) {
+          const fallback = await supabaseApp.from('room_players').select('*').eq('room_id',currentRoom.id);
+          data = fallback.data;
+          error = fallback.error;
+        } else {
+          data = retry.data;
+          error = retry.error;
+        }
+      }
+
+      if (error) {
+        console.log('Error loadPlayers:', error.message);
         return;
       }
 
