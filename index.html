@@ -342,7 +342,7 @@
     <button class="btn btn-primary" onclick="startOffline()" style="margin-bottom:12px;background:linear-gradient(135deg, #f0d78c, #d4af37);color:#0a0304;font-size:1.08rem">
       📱 Jugar Offline (Un solo teléfono)
     </button>
-    <button class="btn btn-secondary" onclick="showScreen('login-screen')">🌐 Jugar Online (Varios teléfonos)</button>
+    <button class="btn btn-secondary" onclick="showOnlineHome()">🌐 Jugar Online (Varios teléfonos)</button>
     <div style="text-align:center;margin-top:12px">
       <button onclick="forceResetApp()" style="background:transparent;border:none;color:var(--muted);font-size:0.75rem;text-decoration:underline;cursor:pointer">
         🔄 Restablecer datos guardados
@@ -367,15 +367,19 @@
     <div class="logo" style="font-size:2.2rem">Modo Offline</div>
     <div class="subtitle">Sin necesidad de internet</div>
 
+    <div class="section-title">Orientación / Preferencia Sexual</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary orientation-off-btn active" data-o="hetero" style="flex:1;font-size:0.8rem">👫 Hetero</button>
+      <button class="btn btn-secondary orientation-off-btn" data-o="gay" style="flex:1;font-size:0.8rem">👬 Mismo Sexo</button>
+      <button class="btn btn-secondary orientation-off-btn" data-o="bisexual" style="flex:1;font-size:0.8rem">🌈 Bisexual</button>
+    </div>
+
     <div class="section-title">Número de participantes</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
-      <button class="btn btn-secondary off-num active" data-n="2">2</button>
-      <button class="btn btn-secondary off-num" data-n="3">3</button>
-      <button class="btn btn-secondary off-num" data-n="4">4</button>
-      <button class="btn btn-secondary off-num" data-n="5">5</button>
-      <button class="btn btn-secondary off-num" data-n="6">6</button>
-      <button class="btn btn-secondary off-num" data-n="7">7</button>
-      <button class="btn btn-secondary off-num" data-n="8">8</button>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary off-num active" data-n="2">2 (Pareja)</button>
+      <button class="btn btn-secondary off-num" data-n="3">3 (Trío)</button>
+      <button class="btn btn-secondary off-num" data-n="4">4 (Cuarteto)</button>
+      <button class="btn btn-secondary off-num" data-n="5">5+ (Grupo)</button>
     </div>
 
     <div class="section-title">Nombres de los participantes</div>
@@ -406,6 +410,13 @@
     <div class="section-title">Crear Ritual Online</div>
     <input type="text" id="couple-name-create" placeholder="Tu nombre o nombre de pareja">
 
+    <div class="section-title">Orientación / Preferencia del Ritual</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary orientation-create-btn active" data-o="hetero" style="flex:1;font-size:0.8rem">👫 Hetero</button>
+      <button class="btn btn-secondary orientation-create-btn" data-o="gay" style="flex:1;font-size:0.8rem">👬 Mismo Sexo</button>
+      <button class="btn btn-secondary orientation-create-btn" data-o="bisexual" style="flex:1;font-size:0.8rem">🌈 Bisexual</button>
+    </div>
+
     <div class="section-title">Modalidad de distancia</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
       <button class="btn btn-secondary distance-btn active" data-d="separados">Todos separados</button>
@@ -413,12 +424,12 @@
       <button class="btn btn-secondary distance-btn" data-d="mixta">Mixta</button>
     </div>
 
-    <div class="section-title">Número de participantes / parejas</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
-      <button class="btn btn-secondary num-btn active" data-n="1">1</button>
-      <button class="btn btn-secondary num-btn" data-n="2">2</button>
-      <button class="btn btn-secondary num-btn" data-n="3">3</button>
-      <button class="btn btn-secondary num-btn" data-n="4">4</button>
+    <div class="section-title">Formato de Juego / Participantes</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary num-btn active" data-n="2">2 (Pareja)</button>
+      <button class="btn btn-secondary num-btn" data-n="3">3 (Trío)</button>
+      <button class="btn btn-secondary num-btn" data-n="4">4 (Cuarteto)</button>
+      <button class="btn btn-secondary num-btn" data-n="5">5+ (Grupo)</button>
     </div>
 
     <div class="section-title">Intensidad</div>
@@ -1114,12 +1125,39 @@
     // ESTADO DEL JUEGO
     let currentUser=null, currentRoom=null, currentPlayers=[], myCoupleName='', myToys=[], myPositions=[];
     let numPlayers=2, numCouples=2, distanceMode='separados', responseMode='solo', intensity='medio';
+    let sexualOrientation='hetero'; // 'hetero', 'gay', 'bisexual'
     let playerNames=[], currentTurn=0, currentRound=1, skipCount=0;
     let usedQ=new Set(), usedD=new Set(), channel=null;
     let currentCardDrinks=1, isDareCard=false, isOffline=true;
     let votesYes=0, votesNo=0;
     let activeScreenId = 'home-screen';
     let currentDisplayedCard = null;
+
+    const trioQ = [
+      "Si tuviéramos un trío esta noche, ¿quién de nosotros tomaría la iniciativa y cuál sería la primera posición?",
+      "¿Qué es lo que más te excita de estar en una cama con dos personas al mismo tiempo?",
+      "¿Te gustaría que dos personas te besen y te acaricien al mismo tiempo en zonas erógenas distintas?",
+      "Describe cómo te gustaría ser el centro de atención de un trío apasionado esta noche."
+    ];
+
+    const trioD = [
+      {text: "Ponte en el centro y deja que los otros dos participantes te besen sensualmente el cuello y el torso durante 2 minutos.", drinks: 2},
+      {text: "Elige a dos participantes para que te hagan un masaje a cuatro manos con aceite erótico.", drinks: 2},
+      {text: "Recibe besos simultáneos de dos personas mientras mantienes los ojos cerrados.", drinks: 2}
+    ];
+
+    function adaptTextForOrientation(text) {
+      if (!text || typeof text !== 'string') return text;
+      if (sexualOrientation === 'gay') {
+        return text.replace(/pareja del sexo opuesto/gi, "pareja")
+                   .replace(/hombre y mujer/gi, "compañeros")
+                   .replace(/él o ella/gi, "tu compañero/a");
+      } else if (sexualOrientation === 'bisexual') {
+        return text.replace(/pareja del sexo opuesto/gi, "cualquier participante")
+                   .replace(/con tu pareja/gi, "con quien tú elijas del grupo");
+      }
+      return text;
+    }
 
     // PERSISTENCIA DE ESTADO CON LOCALSTORAGE (MANTIENE LA PARTIDA EN SEGUNDO PLANO Y TRAS REINICIOS)
     function saveGameState() {
@@ -1131,6 +1169,7 @@
           distanceMode,
           responseMode,
           intensity,
+          sexualOrientation,
           playerNames,
           myCoupleName,
           myToys,
@@ -1172,7 +1211,10 @@
         if (!saved) return false;
         const data = JSON.parse(saved);
 
-        if (!data) return false;
+        if (!data || typeof data !== 'object') return false;
+
+        // Si la pantalla guardada era home-screen, no forzar restauración
+        if (data.activeScreenId === 'home-screen') return false;
 
         isOffline = data.isOffline !== undefined ? data.isOffline : true;
         numPlayers = data.numPlayers || 2;
@@ -1199,32 +1241,32 @@
           currentRoom = data.currentRoom;
         }
 
-        // Si es una partida Online activa, verificar con Supabase si la sala aún existe
+        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
+
+        if (document.getElementById(targetScreen)) {
+          showScreen(targetScreen, false);
+        } else {
+          showHome();
+          return false;
+        }
+
+        // Si es una partida Online activa, reconectar en tiempo real con Supabase
         if (!isOffline && currentRoom && currentRoom.id && supabaseApp) {
           supabaseApp.from('rooms').select('status').eq('id', currentRoom.id).single().then(({ data: rData, error }) => {
-            if (error || !rData) {
-              console.log('La sala guardada ya no existe en Supabase. Limpiando estado.');
-              clearGameState();
-              stopAllPolling();
-              currentRoom = null;
-              showScreen('dashboard-screen', false);
-            } else {
+            if (!error && rData) {
               currentRoom.status = rData.status;
-              joinRealtime(currentRoom.id);
-              loadPlayers();
             }
+            joinRealtime(currentRoom.id);
+            loadPlayers();
           }).catch(() => {
             joinRealtime(currentRoom.id);
             loadPlayers();
           });
         }
 
-        if (isOffline && data.activeScreenId === 'offline-setup') {
+        if (isOffline && targetScreen === 'offline-setup') {
           updateOfflinePlayerInputs();
         }
-
-        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
-        showScreen(targetScreen, false);
 
         if (targetScreen === 'game-screen') {
           updateGameUI();
@@ -1275,12 +1317,29 @@
     }
 
     // NAVEGACIÓN
-    function showScreen(id){
+    function showScreen(id, save = true){
       try {
         document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         const target = document.getElementById(id);
-        if(target) target.classList.add('active');
+        if(target) {
+          target.classList.add('active');
+          activeScreenId = id;
+          if (save) saveGameState();
+        } else {
+          console.log('Target screen not found:', id);
+        }
       } catch(e){ console.log('Error showScreen:', e); }
+    }
+
+    function showHome(){ showScreen('home-screen'); }
+
+    function showOnlineHome(){
+      sClick();
+      if (currentUser) {
+        showScreen('dashboard-screen');
+      } else {
+        showScreen('login-screen');
+      }
     }
 
     function showHome(){ showScreen('home-screen'); }
@@ -1597,6 +1656,20 @@
       stopGamePolling();
     }
 
+    function broadcastLocalChat(fullMessageObj) {
+      if (channel) {
+        try {
+          channel.send({
+            type: 'broadcast',
+            event: 'chat_msg_event',
+            payload: fullMessageObj
+          });
+        } catch(e) {
+          console.log('Error enviando broadcast de chat:', e);
+        }
+      }
+    }
+
     function joinRealtime(roomId){
       if(!supabaseApp) return;
       if(channel) supabaseApp.removeChannel(channel);
@@ -1608,6 +1681,20 @@
       }
 
       channel = supabaseApp.channel('room:'+roomId)
+        .on('broadcast', { event: 'chat_msg_event' }, payload => {
+          if (payload && payload.payload) {
+            const m = payload.payload;
+            const fakePayload = {
+              id: 'bcast_' + Date.now() + '_' + Math.random(),
+              room_id: roomId,
+              user_id: m.senderId,
+              couple_name: m.senderName,
+              message: JSON.stringify(m),
+              created_at: new Date().toISOString()
+            };
+            addChat(fakePayload);
+          }
+        })
         .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
         .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
           currentRoom = p.new;
@@ -1888,6 +1975,9 @@
       };
       addChat(localMsg);
 
+      // Transmitir vía WebSocket Broadcast en tiempo real a todos los dispositivos conectados
+      broadcastLocalChat(fullMessageObj);
+
       // 2. Enviar a Supabase
       const { error } = await supabaseApp.from('chat_messages').insert({
         room_id: currentRoom.id,
@@ -2062,38 +2152,6 @@
     function escapeHtml(str) {
       if (typeof str !== 'string') return '';
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
-      }
-
-      // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
-      const myId = currentUser ? currentUser.id : null;
-      const isForMe = target === 'ALL' || (myId && (target === myId || senderId === myId)) || (myCoupleName && target === myCoupleName);
-
-      if (!isForMe) return;
-
-      const isPrivate = target !== 'ALL';
-      const prefix = isPrivate ? `<span style="color:#ff4d6a;font-weight:700">[🔒 Privado a ${targetName} de ${senderName}]: </span>` : `<strong>${senderName}:</strong> `;
-
-      let bodyHtml = '';
-      if (type === 'text') {
-        bodyHtml = content;
-      } else if (type === 'sticker') {
-        bodyHtml = `<span style="background:rgba(212,175,55,0.22);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${content}</span>`;
-      } else if (type === 'image') {
-        bodyHtml = `<br><img src="${content}" style="max-width:180px;border-radius:10px;margin-top:4px;border:1px solid var(--gold)" onclick="window.open(this.src)">`;
-      } else if (type === 'audio') {
-        bodyHtml = `<br><audio controls src="${content}" style="max-width:210px;height:36px;margin-top:4px"></audio>`;
-      }
-
-      const msgEl = document.createElement('div');
-      msgEl.className = 'chat-msg';
-      msgEl.style.marginBottom = '8px';
-      msgEl.style.fontSize = '0.86rem';
-      msgEl.style.wordBreak = 'break-word';
-      msgEl.innerHTML = prefix + bodyHtml;
-
-      box.appendChild(msgEl);
-      box.scrollTop = box.scrollHeight;
     }
 
     async function fetchChatMessages() {
@@ -2414,6 +2472,22 @@
         document.querySelectorAll('.intensity-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         intensity = b.dataset.i || 'medio';
+      }));
+
+      document.querySelectorAll('.orientation-off-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.orientation-off-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        sexualOrientation = b.dataset.o || 'hetero';
+      }));
+
+      document.querySelectorAll('.orientation-create-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.orientation-create-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        sexualOrientation = b.dataset.o || 'hetero';
       }));
 
       if(supabaseApp){
