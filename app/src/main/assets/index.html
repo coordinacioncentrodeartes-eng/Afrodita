@@ -1810,9 +1810,13 @@
       }
     }
 
-    function joinRealtime(roomId){
-      if(!supabaseApp) return;
-      if(channel) supabaseApp.removeChannel(channel);
+    function joinRealtime(roomId) {
+      if (!supabaseApp) return;
+
+      if (channel) {
+        supabaseApp.removeChannel(channel);
+        channel = null;
+      }
 
       if (currentRoom && currentRoom.status === 'playing') {
         startGamePolling();
@@ -1820,39 +1824,62 @@
         startRoomPolling();
       }
 
-      channel = supabaseApp.channel('room:'+roomId)
-        .on('broadcast', { event: 'chat_msg_event' }, payload => {
-          if (payload && payload.payload) {
-            const m = payload.payload;
-            const fakePayload = {
-              id: 'bcast_' + Date.now() + '_' + Math.random(),
-              room_id: roomId,
-              user_id: m.senderId,
-              couple_name: m.senderName,
-              message: JSON.stringify(m),
-              created_at: new Date().toISOString()
-            };
-            addChat(fakePayload);
+      channel = supabaseApp
+        .channel(`room-chat:${roomId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `room_id=eq.${roomId}`
+          },
+          (payload) => {
+            console.log('Mensaje recibido por Realtime:', payload.new);
+            addChat(payload.new);
           }
-        })
-        .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
-        .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
-          currentRoom = p.new;
-          if(currentRoom.status === 'playing'){
-            stopRoomPolling();
-            startGamePolling();
-            isOffline = false;
-            showScreen('transition-screen');
-            setTimeout(() => {
-              showScreen('game-screen');
-              updateGameUI();
-            }, 2500);
-          } else {
-            loadPlayers();
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'room_players',
+            filter: `room_id=eq.${roomId}`
+          },
+          () => loadPlayers()
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'rooms',
+            filter: `id=eq.${roomId}`
+          },
+          (payload) => {
+            currentRoom = payload.new;
+            if (currentRoom.status === 'playing') {
+              stopRoomPolling();
+              startGamePolling();
+              isOffline = false;
+              if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
+                showScreen('transition-screen');
+                setTimeout(() => {
+                  showScreen('game-screen');
+                  updateGameUI();
+                }, 2500);
+              } else {
+                updateGameUI();
+              }
+            } else {
+              loadPlayers();
+            }
           }
-        })
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',filter:`room_id=eq.${roomId}`},p=>addChat(p.new))
-        .subscribe();
+        )
+        .subscribe((status) => {
+          console.log('Estado del canal Realtime:', status);
+        });
     }
 
     let lastPendingCount = 0;
