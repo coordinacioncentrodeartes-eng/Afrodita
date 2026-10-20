@@ -2158,7 +2158,11 @@
       const userId = (currentUser && currentUser.id) ? currentUser.id : (currentRoom.host_id || '00000000-0000-0000-0000-000000000000');
       const senderName = myCoupleName || 'Jugador';
 
+      // 1. Generar identificador único determinista para deduplicación global
+      const uniqueMsgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+
       const fullMessageObj = {
+        id: uniqueMsgId,
         type: payloadObj.type || 'text',
         content: payloadObj.content || '',
         target: targetVal,
@@ -2169,13 +2173,16 @@
 
       const jsonStr = JSON.stringify(fullMessageObj);
 
-      // 1. Mostrar de inmediato en el chat local del emisor (Optimista)
+      // Registrar ID en conjunto procesado para ignorar ecos
+      processedMsgIds.add(uniqueMsgId);
+
+      // 2. Mostrar de inmediato en el chat local del emisor (Optimista)
       addChatLocal(senderName, payloadObj.content, true, payloadObj.type, payloadObj.content);
 
-      // Transmitir vía WebSocket Broadcast en tiempo real a todos los dispositivos conectados
+      // 3. Transmitir vía WebSocket Broadcast en tiempo real
       broadcastLocalChat(fullMessageObj);
 
-      // 2. Enviar a Supabase
+      // 4. Enviar a Supabase
       const { error } = await supabaseApp.from('chat_messages').insert({
         room_id: currentRoom.id,
         user_id: userId,
@@ -2335,29 +2342,23 @@
         }
       } catch(e){}
 
-      const senderName = m.couple_name || m.senderName || (msgData ? msgData.senderName : 'Jugador');
-      const senderId = m.user_id || m.senderId || (msgData ? msgData.senderId : null);
+      const uniqueId = (msgData && msgData.id) ? msgData.id : (m.id || (m.user_id + '_' + m.created_at));
 
-      // Evitar duplicar los mensajes que yo mismo envié localmente de forma optimista
+      // Si el ID único ya fue procesado (local optimista o evento previo), ignorar para evitar duplicados
+      if (processedMsgIds.has(uniqueId)) return;
+      processedMsgIds.add(uniqueId);
+
+      const senderName = (msgData && msgData.senderName) || m.couple_name || m.senderName || 'Jugador';
+      const senderId = (msgData && msgData.senderId) || m.user_id || m.senderId;
+
+      // Evitar duplicar los mensajes que yo mismo envié
       const myId = currentUser ? currentUser.id : null;
       const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
       if (isMeSender) return;
 
-      const msgKey = m.id || (senderId + '_' + (m.created_at || Date.now()) + '_' + (typeof m.message === 'string' ? m.message.substring(0,30) : ''));
-      if (processedMsgIds.has(msgKey)) return;
-      processedMsgIds.add(msgKey);
-
-      let type = m.type || 'text';
-      let content = m.content || m.message;
-      let target = 'ALL';
-
-      if (msgData) {
-        type = msgData.type || type;
-        content = msgData.content || content;
-        target = msgData.target || 'ALL';
-      } else if (m.target) {
-        target = m.target;
-      }
+      let type = (msgData && msgData.type) || m.type || 'text';
+      let content = (msgData && msgData.content) || m.content || m.message;
+      let target = (msgData && msgData.target) || m.target || 'ALL';
 
       const isForMe = target === 'ALL' || (myId && target === myId) || (myCoupleName && target === myCoupleName);
       if (!isForMe) return;
