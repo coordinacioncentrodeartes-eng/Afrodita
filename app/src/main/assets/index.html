@@ -1827,16 +1827,6 @@
       channel = supabaseApp
         .channel(`room-chat:${roomId}`)
         .on(
-          'broadcast',
-          { event: 'chat_msg_event' },
-          (payload) => {
-            if (payload && payload.payload) {
-              console.log('Mensaje recibido por Broadcast:', payload.payload);
-              addChat(payload.payload);
-            }
-          }
-        )
-        .on(
           'postgres_changes',
           {
             event: 'INSERT',
