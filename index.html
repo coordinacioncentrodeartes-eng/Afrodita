@@ -1827,6 +1827,16 @@
       channel = supabaseApp
         .channel(`room-chat:${roomId}`)
         .on(
+          'broadcast',
+          { event: 'chat_msg_event' },
+          (payload) => {
+            if (payload && payload.payload) {
+              console.log('Mensaje recibido por Broadcast:', payload.payload);
+              addChat(payload.payload);
+            }
+          }
+        )
+        .on(
           'postgres_changes',
           {
             event: 'INSERT',
@@ -1835,7 +1845,7 @@
             filter: `room_id=eq.${roomId}`
           },
           (payload) => {
-            console.log('Mensaje recibido por Realtime:', payload.new);
+            console.log('Mensaje recibido por Postgres Realtime:', payload.new);
             addChat(payload.new);
           }
         )
@@ -2325,34 +2335,34 @@
         }
       } catch(e){}
 
-      const senderName = m.couple_name || m.senderName || 'Jugador';
-      const senderId = m.user_id || m.senderId;
+      const senderName = m.couple_name || m.senderName || (msgData ? msgData.senderName : 'Jugador');
+      const senderId = m.user_id || m.senderId || (msgData ? msgData.senderId : null);
 
       // Evitar duplicar los mensajes que yo mismo envié localmente de forma optimista
       const myId = currentUser ? currentUser.id : null;
       const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
       if (isMeSender) return;
 
-      const msgKey = m.id || (senderId + '_' + m.created_at + '_' + (typeof m.message === 'string' ? m.message.substring(0,30) : ''));
+      const msgKey = m.id || (senderId + '_' + (m.created_at || Date.now()) + '_' + (typeof m.message === 'string' ? m.message.substring(0,30) : ''));
       if (processedMsgIds.has(msgKey)) return;
       processedMsgIds.add(msgKey);
 
-      let type = 'text';
-      let content = m.message;
+      let type = m.type || 'text';
+      let content = m.content || m.message;
       let target = 'ALL';
-      let targetName = 'Todos';
 
       if (msgData) {
-        type = msgData.type || 'text';
-        content = msgData.content || '';
+        type = msgData.type || type;
+        content = msgData.content || content;
         target = msgData.target || 'ALL';
-        targetName = msgData.targetName || 'Todos';
+      } else if (m.target) {
+        target = m.target;
       }
 
       const isForMe = target === 'ALL' || (myId && target === myId) || (myCoupleName && target === myCoupleName);
       if (!isForMe) return;
 
-      const mediaUrl = m.media_url || m.mediaUrl || content;
+      const mediaUrl = m.media_url || m.mediaUrl || (type !== 'text' ? content : null);
       addChatLocal(senderName, content, false, type, mediaUrl);
     }
 
