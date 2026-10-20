@@ -1517,7 +1517,8 @@
 
       currentTurn = 0; currentRound = 1; skipCount = 0;
       usedQ.clear(); usedD.clear();
-      document.getElementById('chat-section').style.display = 'none';
+      const chatSec = document.getElementById('chat-section');
+      if (chatSec) chatSec.style.display = 'none';
       showScreen('game-screen');
       updateGameUI();
       onGameStart(distanceMode);
@@ -1843,7 +1844,6 @@
             isOffline = false;
             showScreen('transition-screen');
             setTimeout(() => {
-              document.getElementById('chat-section').style.display = 'block';
               showScreen('game-screen');
               updateGameUI();
             }, 2500);
@@ -1910,7 +1910,6 @@
         if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
           showScreen('transition-screen');
           setTimeout(() => {
-            document.getElementById('chat-section').style.display = 'block';
             showScreen('game-screen');
             updateGameUI();
           }, 2500);
@@ -2011,7 +2010,6 @@
 
         showScreen('transition-screen');
         setTimeout(() => {
-          document.getElementById('chat-section').style.display = 'block';
           showScreen('game-screen');
           updateGameUI();
           onGameStart(currentRoom?.distance_mode || distanceMode);
