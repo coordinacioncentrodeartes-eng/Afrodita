@@ -1810,12 +1810,16 @@
       }
     }
 
-    function joinRealtime(roomId) {
-      if (!supabaseApp) return;
+    async function joinRealtime(roomId) {
+      if (!supabaseApp || !roomId) {
+        console.error('Realtime: falta Supabase o roomId');
+        return;
+      }
 
       if (channel) {
-        supabaseApp.removeChannel(channel);
+        const oldChannel = channel;
         channel = null;
+        await supabaseApp.removeChannel(oldChannel);
       }
 
       if (currentRoom && currentRoom.status === 'playing') {
@@ -1824,8 +1828,8 @@
         startRoomPolling();
       }
 
-      channel = supabaseApp
-        .channel(`room-chat:${roomId}`)
+      const roomChannel = supabaseApp
+        .channel(`chat:${roomId}`)
         .on(
           'postgres_changes',
           {
@@ -1835,7 +1839,7 @@
             filter: `room_id=eq.${roomId}`
           },
           (payload) => {
-            console.log('Mensaje recibido por Postgres Realtime:', payload.new);
+            console.log('Realtime recibió INSERT:', payload.new);
             addChat(payload.new);
           }
         )
@@ -1877,9 +1881,19 @@
             }
           }
         )
-        .subscribe((status) => {
-          console.log('Estado del canal Realtime:', status);
+        .subscribe((status, err) => {
+          console.log('Estado Realtime chat:', status);
+
+          if (err) {
+            console.error('Error al suscribirse al chat:', err);
+          }
+
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('No se pudo establecer la suscripción Realtime.');
+          }
         });
+
+      channel = roomChannel;
     }
 
     let lastPendingCount = 0;
@@ -2139,52 +2153,62 @@
     }
 
     async function sendChatPayload(payloadObj) {
-      if(!supabaseApp || !currentRoom) return;
+      if (!supabaseApp || !currentRoom?.id || !currentUser?.id) {
+        console.error('Chat: falta cliente, sala o usuario autenticado');
+        alert('No se pudo enviar: la sesión o la sala no está lista.');
+        return;
+      }
+
       const targetSelect = document.getElementById('chat-target-select');
-      const targetVal = targetSelect ? targetSelect.value : 'ALL';
+      const target = targetSelect?.value || 'ALL';
       const selectedOption = targetSelect?.options[targetSelect.selectedIndex];
-      const targetName = selectedOption ? selectedOption.text.replace('🔒 Privado a: ', '').replace('👥 Todos (Mensaje Público)', 'Todos') : 'Todos';
 
-      const userId = (currentUser && currentUser.id) ? currentUser.id : (currentRoom.host_id || '00000000-0000-0000-0000-000000000000');
-      const senderName = myCoupleName || 'Jugador';
+      const targetName = selectedOption
+        ? selectedOption.text
+            .replace('🔒 Privado a: ', '')
+            .replace('👥 Todos (Mensaje Público)', 'Todos')
+        : 'Todos';
 
-      // 1. Generar identificador único determinista para deduplicación global
-      const uniqueMsgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      const type = payloadObj.type || 'text';
+      const content = payloadObj.content || '';
 
-      const fullMessageObj = {
-        id: uniqueMsgId,
-        type: payloadObj.type || 'text',
-        content: payloadObj.content || '',
-        target: targetVal,
-        targetName: targetName,
-        senderId: userId,
-        senderName: senderName
+      const messageObj = {
+        id: globalThis.crypto?.randomUUID?.()
+          || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+        type,
+        content,
+        target,
+        targetName,
+        senderId: currentUser.id,
+        senderName: myCoupleName || 'Jugador'
       };
 
-      const jsonStr = JSON.stringify(fullMessageObj);
-
-      // Registrar ID en conjunto procesado para ignorar ecos
-      processedMsgIds.add(uniqueMsgId);
-
-      // 2. Mostrar de inmediato en el chat local del emisor (Optimista)
-      addChatLocal(senderName, payloadObj.content, true, payloadObj.type, payloadObj.content);
-
-      // 3. Transmitir vía WebSocket Broadcast en tiempo real
-      broadcastLocalChat(fullMessageObj);
-
-      // 4. Enviar a Supabase
-      const { error } = await supabaseApp.from('chat_messages').insert({
-        room_id: currentRoom.id,
-        user_id: userId,
-        couple_name: senderName,
-        message: jsonStr,
-        type: payloadObj.type || 'text',
-        media_url: payloadObj.content || null
-      });
+      const { error } = await supabaseApp
+        .from('chat_messages')
+        .insert({
+          room_id: currentRoom.id,
+          user_id: currentUser.id,
+          couple_name: messageObj.senderName,
+          message: JSON.stringify(messageObj),
+          type,
+          media_url: type === 'text' ? null : content
+        });
 
       if (error) {
-        console.log('Error enviando chat a Supabase:', error.message);
+        console.error('INSERT chat_messages falló:', error);
+        alert(`No se pudo guardar el mensaje: ${error.message}`);
+        return;
       }
+
+      // Registrar el ID y mostrarlo localmente solo tras guardar con éxito.
+      processedMsgIds.add(messageObj.id);
+      addChatLocal(
+        messageObj.senderName,
+        content,
+        true,
+        type,
+        type === 'text' ? null : content
+      );
     }
 
     async function sendChat(){
@@ -2322,38 +2346,64 @@
       }
     }
 
-    function addChat(m){
-      if(!m) return;
+    function addChat(row) {
+      if (!row || !currentRoom || row.room_id !== currentRoom.id) return;
 
       let msgData = null;
-      try {
-        if (typeof m.message === 'string' && m.message.trim().startsWith('{')) {
-          msgData = JSON.parse(m.message);
+
+      if (typeof row.message === 'string') {
+        try {
+          msgData = JSON.parse(row.message);
+        } catch {
+          // Compatibilidad con filas antiguas cuyo message era texto plano.
         }
-      } catch(e){}
+      }
 
-      const uniqueId = (msgData && msgData.id) ? msgData.id : (m.id || (m.user_id + '_' + m.created_at));
+      const senderId = msgData?.senderId || row.user_id;
 
-      // Si el ID único ya fue procesado (local optimista o evento previo), ignorar para evitar duplicados
-      if (processedMsgIds.has(uniqueId)) return;
-      processedMsgIds.add(uniqueId);
+      // El ID de usuario es la identificación; no compares solo nombres.
+      if (currentUser?.id && senderId === currentUser.id) return;
 
-      const senderName = (msgData && msgData.senderName) || m.couple_name || m.senderName || 'Jugador';
-      const senderId = (msgData && msgData.senderId) || m.user_id || m.senderId;
+      const messageId =
+        msgData?.id ||
+        row.id ||
+        `${row.user_id || 'unknown'}_${row.created_at || Date.now()}`;
 
-      // Evitar duplicar los mensajes que yo mismo envié
-      const myId = currentUser ? currentUser.id : null;
-      const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
-      if (isMeSender) return;
+      if (processedMsgIds.has(messageId)) return;
+      processedMsgIds.add(messageId);
 
-      let type = (msgData && msgData.type) || m.type || 'text';
-      let content = (msgData && msgData.content) || m.content || m.message;
-      let target = (msgData && msgData.target) || m.target || 'ALL';
+      const senderName =
+        msgData?.senderName ||
+        row.couple_name ||
+        'Jugador';
 
-      const isForMe = target === 'ALL' || (myId && target === myId) || (myCoupleName && target === myCoupleName);
+      const type =
+        msgData?.type ||
+        row.type ||
+        'text';
+
+      const content =
+        msgData?.content ??
+        row.message ??
+        '';
+
+      const target =
+        msgData?.target ||
+        row.target ||
+        'ALL';
+
+      const myId = currentUser?.id;
+      const isForMe =
+        target === 'ALL' ||
+        target === myId ||
+        target === myCoupleName;
+
       if (!isForMe) return;
 
-      const mediaUrl = m.media_url || m.mediaUrl || (type !== 'text' ? content : null);
+      const mediaUrl =
+        row.media_url ||
+        (type !== 'text' ? content : null);
+
       addChatLocal(senderName, content, false, type, mediaUrl);
     }
 
