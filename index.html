@@ -198,12 +198,127 @@
     .next-btn{background:#1a1a1a;border:1px solid #333!important;color:var(--text)}
     .skip-btn{background:transparent;border:1px solid #3a3a3a!important;color:var(--muted)}
 
-    .chat-box{background:rgba(12,6,10,0.98)!important;border:1.5px solid var(--gold)!important;border-radius:14px;padding:10px 12px;min-height:150px;max-height:200px;overflow-y:auto;margin-bottom:8px}
-    .chat-msg{color:#f8f5f0!important;font-size:0.88rem!important;margin-bottom:8px!important;line-height:1.4!important;word-break:break-word!important}
-    .chat-msg strong{color:var(--gold)!important;font-weight:700!important}
-    .chat-row{display:flex;gap:6px}
-    .chat-row input{margin-bottom:0;flex:1}
-    .chat-row button{width:auto;padding:0 14px;margin:0}
+  /* ===== CHAT MÓVIL + ESCRITORIO ===== */
+  #chat-section {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 420px;
+    margin: 0 auto;
+    background: #0a0304;
+    border-top: 1px solid #333;
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+  }
+
+  .chat-box {
+    height: 170px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    background: rgba(12, 4, 6, 0.97);
+  }
+
+  .chat-msg {
+    margin-bottom: 10px;
+    line-height: 1.4;
+    word-break: break-word;
+    color: #f8f5f0 !important;
+  }
+  .chat-msg strong {
+    color: var(--gold) !important;
+  }
+  .chat-msg.me {
+    text-align: right;
+  }
+  .chat-msg.me strong {
+    color: #f0d78c !important;
+  }
+
+  .chat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #110508;
+  }
+
+  #chat-input {
+    flex: 1;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important; /* evita zoom en iOS */
+    border-radius: 22px !important;
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid #333 !important;
+    color: #f8f5f0 !important;
+    -webkit-appearance: none;
+  }
+
+  .chat-icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #444;
+    background: #1a0a0c;
+    color: var(--gold);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .chat-icon-btn:active {
+    background: rgba(212,175,55,0.28);
+    transform: scale(0.93);
+  }
+
+  .chat-send-btn {
+    width: 48px;
+    height: 44px;
+    border-radius: 22px;
+    border: none;
+    background: linear-gradient(135deg, var(--gold), #b8860b);
+    color: #111;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chat-send-btn:active {
+    transform: scale(0.94);
+  }
+
+  .chat-img {
+    max-width: 200px;
+    width: 100%;
+    border-radius: 14px;
+    margin-top: 6px;
+    display: block;
+    border: 1px solid rgba(212,175,55,0.3);
+  }
+
+  .chat-audio {
+    width: 200px;
+    margin-top: 6px;
+    border-radius: 20px;
+  }
+
+  .recording {
+    border-color: #ff4d6a !important;
+    background: rgba(196,30,58,0.35) !important;
+    animation: pulse-rec 1.1s infinite;
+  }
+  @keyframes pulse-rec {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,106,0.55); }
+    50% { box-shadow: 0 0 0 10px rgba(255,77,106,0); }
+  }
 
     /* DIÁLOGOS Y PERSONAJE AFRODITA */
     #afrodita-dialogue {
@@ -342,13 +457,13 @@
     <span id="chat-unread-badge" style="display:none;background:#ff4d6a;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.75rem;font-weight:800">0</span>
   </button>
 
-  <!-- VENTANA MODAL SLIDE-UP DE CHAT MULTIMEDIA (DESPLIEGUE COMPLETO MÓVIL) -->
-  <div id="chat-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;padding:16px;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-    <div style="width:100%;max-width:420px;background:rgba(20,10,15,0.98);border:1.5px solid var(--gold);border-radius:20px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,0.95);display:flex;flex-direction:column;max-height:85vh">
+  <!-- VENTANA MODAL SLIDE-UP DE CHAT MULTIMEDIA (DESPLIEGUE COMPLETO MÓVIL Y DESKTOP) -->
+  <div id="chat-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;padding:12px;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+    <div style="width:100%;max-width:420px;background:rgba(20,10,15,0.98);border:1.5px solid var(--gold);border-radius:20px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,0.95);display:flex;flex-direction:column;max-height:88vh">
 
       <!-- HEADER -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:8px">
-        <span style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--gold);font-weight:700">💬 CHAT EN VIVO Y MENSAJERÍA</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:6px">
+        <span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);font-weight:700">💬 CHAT EN VIVO Y MENSAJERÍA</span>
         <button onclick="toggleChatModal()" style="background:transparent;border:none;color:var(--gold);font-size:1.4rem;cursor:pointer">✖</button>
       </div>
 
@@ -361,24 +476,7 @@
       </div>
 
       <!-- CAJA DE MENSAJES -->
-      <div class="chat-box" id="chat-box" style="flex:1;min-height:180px;max-height:280px;background:rgba(12,6,10,0.98)!important;border:1.5px solid var(--gold)!important;border-radius:14px;padding:10px 12px;overflow-y:auto;margin-bottom:10px"></div>
-
-      <!-- BARRA DE HERRAMIENTAS MULTIMEDIA -->
-      <div style="display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
-        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('emoji')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          😊 Emojis
-        </button>
-        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('sticker')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          🎭 GIFs/Stickers
-        </button>
-        <label class="btn btn-secondary" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0;cursor:pointer;display:inline-block">
-          📸 Foto/Selfie
-          <input type="file" id="chat-file-input" accept="image/*" capture="user" onchange="sendImageChat(this)" style="display:none">
-        </label>
-        <button type="button" id="voice-record-btn" class="btn btn-secondary" onclick="toggleVoiceRecording()" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          🎙️ Nota de Voz
-        </button>
-      </div>
+      <div class="chat-box" id="chat-box" style="flex:1;min-height:160px;max-height:260px;background:rgba(12,6,10,0.98)!important;border:1.5px solid var(--gold)!important;border-radius:14px;padding:10px 12px;overflow-y:auto;margin-bottom:8px"></div>
 
       <!-- PANEL EMOJIS -->
       <div id="emoji-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;font-size:1.2rem;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center;cursor:pointer">
@@ -415,10 +513,23 @@
         🔴 Grabando nota de voz... <span id="record-timer">00:00</span>
       </div>
 
-      <!-- ENTRADA Y ENVIAR -->
+      <!-- FILA DE ENTRADA CON ICONOS Y BOTONES MÓVILES PERFECTOS -->
       <div class="chat-row">
-        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
+        <!-- Foto -->
+        <label class="chat-icon-btn" for="chat-photo-input" title="Enviar foto">📷</label>
+        <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display:none" onchange="sendImageChat(this)" />
+
+        <!-- Emojis -->
+        <button type="button" class="chat-icon-btn" onclick="toggleChatDrawer('emoji')" title="Emojis">😊</button>
+
+        <!-- Micrófono -->
+        <button type="button" class="chat-icon-btn" id="chat-mic-btn" title="Nota de voz" onclick="toggleVoiceNote()">🎤</button>
+
+        <!-- Input de texto -->
+        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." autocomplete="off" enterkeyhint="send" onkeydown="if(event.key==='Enter')sendChat()" />
+
+        <!-- Enviar -->
+        <button type="button" class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">➤</button>
       </div>
 
     </div>
@@ -2023,16 +2134,8 @@
 
       const jsonStr = JSON.stringify(fullMessageObj);
 
-      // 1. Mostrar de inmediato en el chat local del emisor
-      const localMsg = {
-        id: 'local_' + Date.now() + '_' + Math.random(),
-        room_id: currentRoom.id,
-        user_id: userId,
-        couple_name: senderName,
-        message: jsonStr,
-        created_at: new Date().toISOString()
-      };
-      addChat(localMsg);
+      // 1. Mostrar de inmediato en el chat local del emisor (Optimista)
+      addChatLocal(senderName, payloadObj.content, true, payloadObj.type, payloadObj.content);
 
       // Transmitir vía WebSocket Broadcast en tiempo real a todos los dispositivos conectados
       broadcastLocalChat(fullMessageObj);
@@ -2042,19 +2145,14 @@
         room_id: currentRoom.id,
         user_id: userId,
         couple_name: senderName,
-        message: jsonStr
+        message: jsonStr,
+        type: payloadObj.type || 'text',
+        media_url: payloadObj.content || null
       });
 
       if (error) {
         console.log('Error enviando chat a Supabase:', error.message);
-        await supabaseApp.from('chat_messages').insert({
-          room_id: currentRoom.id,
-          user_id: userId,
-          couple_name: senderName,
-          message: payloadObj.type === 'text' ? payloadObj.content : `[${payloadObj.type.toUpperCase()}] ${payloadObj.content}`
-        });
       }
-      fetchChatMessages();
     }
 
     async function sendChat(){
@@ -2071,9 +2169,10 @@
       closeChatDrawers();
     }
 
-    function sendImageChat(inputEl) {
-      if (!inputEl.files || !inputEl.files[0]) return;
-      const file = inputEl.files[0];
+    // ---------- Enviar foto ----------
+    async function sendPhoto(file) {
+      if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const img = new Image();
@@ -2086,73 +2185,113 @@
           canvas.width = w; canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const base64Jpeg = canvas.toDataURL('image/jpeg', 0.65);
-          await sendChatPayload({ type: 'image', content: base64Jpeg });
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+          await sendChatPayload({ type: 'image', content: dataUrl });
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+    }
+
+    function sendImageChat(inputEl) {
+      if (!inputEl.files || !inputEl.files[0]) return;
+      sendPhoto(inputEl.files[0]);
       inputEl.value = '';
       closeChatDrawers();
     }
 
     let mediaRecorder = null;
     let audioChunks = [];
-    let recordTimerInterval = null;
-    let recordSeconds = 0;
+    let isRecording = false;
 
-    async function toggleVoiceRecording() {
-      const btn = document.getElementById('voice-record-btn');
-      const statusEl = document.getElementById('recording-status');
-      const timerEl = document.getElementById('record-timer');
+    // ---------- Enviar nota de voz ----------
+    async function toggleVoiceNote() {
+      const btn = document.getElementById('chat-mic-btn');
+      if (!btn) return;
 
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      if (!isRecording) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          audioChunks = [];
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              sampleRate: 44100
+            }
+          });
+
           mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+          };
+
           mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
             const reader = new FileReader();
             reader.onloadend = async function() {
-              const base64Audio = reader.result;
-              await sendChatPayload({ type: 'audio', content: base64Audio });
+              const dataUrl = reader.result;
+              await sendChatPayload({ type: 'audio', content: dataUrl });
             };
-            reader.readAsDataURL(audioBlob);
+            reader.readAsDataURL(blob);
+
             stream.getTracks().forEach(t => t.stop());
           };
-          mediaRecorder.start();
-          recordSeconds = 0;
-          if (statusEl) statusEl.style.display = 'block';
-          if (btn) btn.textContent = '⏹️ Enviar Nota';
-          recordTimerInterval = setInterval(() => {
-            recordSeconds++;
-            const m = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
-            const s = String(recordSeconds % 60).padStart(2, '0');
-            if (timerEl) timerEl.textContent = `${m}:${s}`;
-          }, 1000);
-        } catch(e) {
-          alert('No se pudo acceder al micrófono para grabar la nota de voz: ' + e.message);
+
+          mediaRecorder.start(250);
+          isRecording = true;
+          btn.classList.add('recording');
+          btn.textContent = '⏹';
+        } catch (err) {
+          console.error(err);
+          alert('No se pudo acceder al micrófono. Revisa los permisos del dispositivo.');
         }
-      } else if (mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        clearInterval(recordTimerInterval);
-        if (statusEl) statusEl.style.display = 'none';
-        if (btn) btn.textContent = '🎙️ Nota de Voz';
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isRecording = false;
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
       }
     }
 
     const processedMsgIds = new Set();
 
+    function addChatLocal(coupleName, message, isMe = false, type = 'text', mediaUrl = null) {
+      const box = document.getElementById('chat-box');
+      if (!box) return;
+
+      let content = '';
+      if (type === 'image' && mediaUrl) {
+        content = `<br><img src="${mediaUrl}" class="chat-img" alt="foto" onclick="window.open(this.src)" />`;
+      } else if (type === 'audio' && mediaUrl) {
+        content = `<br><audio controls class="chat-audio" src="${mediaUrl}"></audio>`;
+      } else if (type === 'sticker') {
+        content = `<span style="background:rgba(212,175,55,0.25);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${escapeHtml(message || '')}</span>`;
+      } else {
+        content = escapeHtml(message || '');
+      }
+
+      const div = document.createElement('div');
+      div.className = 'chat-msg' + (isMe ? ' me' : '');
+      div.style.marginBottom = '8px';
+      div.style.lineHeight = '1.4';
+      div.style.wordBreak = 'break-word';
+      div.style.color = '#f8f5f0';
+      div.innerHTML = `<strong style="color:${isMe ? '#f0d78c' : 'var(--gold)'};font-weight:700">${escapeHtml(coupleName)}:</strong> ${content}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+
+      if (!isChatModalOpen) {
+        unreadChatCount++;
+        updateUnreadBadge();
+      }
+    }
+
     function addChat(m){
       if(!m) return;
-      const msgKey = m.id || (m.user_id + '_' + m.created_at + '_' + (typeof m.message === 'string' ? m.message.substring(0,20) : ''));
-      if (processedMsgIds.has(msgKey)) return;
-      processedMsgIds.add(msgKey);
-
-      const box = document.getElementById('chat-box');
-      if(!box) return;
 
       let msgData = null;
       try {
@@ -2161,8 +2300,17 @@
         }
       } catch(e){}
 
-      const senderName = m.couple_name || 'Jugador';
-      const senderId = m.user_id;
+      const senderName = m.couple_name || m.senderName || 'Jugador';
+      const senderId = m.user_id || m.senderId;
+
+      // Evitar duplicar los mensajes que yo mismo envié localmente de forma optimista
+      const myId = currentUser ? currentUser.id : null;
+      const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
+      if (isMeSender) return;
+
+      const msgKey = m.id || (senderId + '_' + m.created_at + '_' + (typeof m.message === 'string' ? m.message.substring(0,30) : ''));
+      if (processedMsgIds.has(msgKey)) return;
+      processedMsgIds.add(msgKey);
 
       let type = 'text';
       let content = m.message;
@@ -2176,41 +2324,11 @@
         targetName = msgData.targetName || 'Todos';
       }
 
-      // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
-      const myId = currentUser ? currentUser.id : null;
-      const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
-      const isForMe = target === 'ALL' || isMeSender || (myId && target === myId) || (myCoupleName && target === myCoupleName);
-
+      const isForMe = target === 'ALL' || (myId && target === myId) || (myCoupleName && target === myCoupleName);
       if (!isForMe) return;
 
-      const isPrivate = target !== 'ALL';
-      const prefix = isPrivate ? `<span style="color:#ff4d6a;font-weight:700">[🔒 Privado a ${targetName} de ${senderName}]: </span>` : `<strong>${senderName}:</strong> `;
-
-      let bodyHtml = '';
-      if (type === 'text') {
-        bodyHtml = escapeHtml(content);
-      } else if (type === 'sticker') {
-        bodyHtml = `<span style="background:rgba(212,175,55,0.22);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${escapeHtml(content)}</span>`;
-      } else if (type === 'image') {
-        bodyHtml = `<br><img src="${content}" style="max-width:180px;border-radius:10px;margin-top:4px;border:1px solid var(--gold);cursor:pointer" onclick="window.open(this.src)">`;
-      } else if (type === 'audio') {
-        bodyHtml = `<br><audio controls src="${content}" style="max-width:210px;height:36px;margin-top:4px"></audio>`;
-      }
-
-      const msgEl = document.createElement('div');
-      msgEl.className = 'chat-msg';
-      msgEl.style.marginBottom = '8px';
-      msgEl.style.fontSize = '0.86rem';
-      msgEl.style.wordBreak = 'break-word';
-      msgEl.innerHTML = prefix + bodyHtml;
-
-      box.appendChild(msgEl);
-      box.scrollTop = box.scrollHeight;
-
-      if (!isChatModalOpen) {
-        unreadChatCount++;
-        updateUnreadBadge();
-      }
+      const mediaUrl = m.media_url || m.mediaUrl || content;
+      addChatLocal(senderName, content, false, type, mediaUrl);
     }
 
     function escapeHtml(str) {

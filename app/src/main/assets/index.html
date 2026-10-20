@@ -198,11 +198,127 @@
     .next-btn{background:#1a1a1a;border:1px solid #333!important;color:var(--text)}
     .skip-btn{background:transparent;border:1px solid #3a3a3a!important;color:var(--muted)}
 
-    .chat-box{background:var(--card);border:1px solid #2a2a2a;border-radius:11px;padding:9px;max-height:140px;overflow-y:auto;margin-bottom:7px;font-size:.84rem}
-    .chat-msg{margin-bottom:4px}.chat-msg strong{color:var(--gold)}
-    .chat-row{display:flex;gap:6px}
-    .chat-row input{margin-bottom:0;flex:1}
-    .chat-row button{width:auto;padding:0 14px;margin:0}
+  /* ===== CHAT MÓVIL + ESCRITORIO ===== */
+  #chat-section {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 420px;
+    margin: 0 auto;
+    background: #0a0304;
+    border-top: 1px solid #333;
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom, 10px);
+  }
+
+  .chat-box {
+    height: 170px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    background: rgba(12, 4, 6, 0.97);
+  }
+
+  .chat-msg {
+    margin-bottom: 10px;
+    line-height: 1.4;
+    word-break: break-word;
+    color: #f8f5f0 !important;
+  }
+  .chat-msg strong {
+    color: var(--gold) !important;
+  }
+  .chat-msg.me {
+    text-align: right;
+  }
+  .chat-msg.me strong {
+    color: #f0d78c !important;
+  }
+
+  .chat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #110508;
+  }
+
+  #chat-input {
+    flex: 1;
+    margin: 0 !important;
+    padding: 12px 14px !important;
+    font-size: 16px !important; /* evita zoom en iOS */
+    border-radius: 22px !important;
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid #333 !important;
+    color: #f8f5f0 !important;
+    -webkit-appearance: none;
+  }
+
+  .chat-icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #444;
+    background: #1a0a0c;
+    color: var(--gold);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .chat-icon-btn:active {
+    background: rgba(212,175,55,0.28);
+    transform: scale(0.93);
+  }
+
+  .chat-send-btn {
+    width: 48px;
+    height: 44px;
+    border-radius: 22px;
+    border: none;
+    background: linear-gradient(135deg, var(--gold), #b8860b);
+    color: #111;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chat-send-btn:active {
+    transform: scale(0.94);
+  }
+
+  .chat-img {
+    max-width: 200px;
+    width: 100%;
+    border-radius: 14px;
+    margin-top: 6px;
+    display: block;
+    border: 1px solid rgba(212,175,55,0.3);
+  }
+
+  .chat-audio {
+    width: 200px;
+    margin-top: 6px;
+    border-radius: 20px;
+  }
+
+  .recording {
+    border-color: #ff4d6a !important;
+    background: rgba(196,30,58,0.35) !important;
+    animation: pulse-rec 1.1s infinite;
+  }
+  @keyframes pulse-rec {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,106,0.55); }
+    50% { box-shadow: 0 0 0 10px rgba(255,77,106,0); }
+  }
 
     /* DIÁLOGOS Y PERSONAJE AFRODITA */
     #afrodita-dialogue {
@@ -335,6 +451,90 @@
     </div>
   </div>
 
+  <!-- BOTÓN FLOTANTE DE CHAT GLOBAL (MÓVIL / WEB) -->
+  <button id="chat-trigger-btn" onclick="toggleChatModal()" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;background:linear-gradient(135deg,var(--gold),#b8860b);color:#111;border:none;border-radius:30px;padding:12px 18px;font-weight:700;font-size:0.92rem;box-shadow:0 8px 25px rgba(212,175,55,0.6);align-items:center;gap:6px;cursor:pointer">
+    <span>💬 Chat</span>
+    <span id="chat-unread-badge" style="display:none;background:#ff4d6a;color:#fff;border-radius:10px;padding:1px 6px;font-size:0.75rem;font-weight:800">0</span>
+  </button>
+
+  <!-- VENTANA MODAL SLIDE-UP DE CHAT MULTIMEDIA (DESPLIEGUE COMPLETO MÓVIL Y DESKTOP) -->
+  <div id="chat-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;padding:12px;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+    <div style="width:100%;max-width:420px;background:rgba(20,10,15,0.98);border:1.5px solid var(--gold);border-radius:20px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,0.95);display:flex;flex-direction:column;max-height:88vh">
+
+      <!-- HEADER -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(212,175,55,0.3);padding-bottom:6px">
+        <span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);font-weight:700">💬 CHAT EN VIVO Y MENSAJERÍA</span>
+        <button onclick="toggleChatModal()" style="background:transparent;border:none;color:var(--gold);font-size:1.4rem;cursor:pointer">✖</button>
+      </div>
+
+      <!-- SELECTOR DE DESTINATARIO -->
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:0.75rem;color:var(--gold-light);font-weight:600">Enviar a:</span>
+        <select id="chat-target-select" style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.08);border:1px solid #444;color:var(--text);border-radius:8px;font-size:0.8rem">
+          <option value="ALL">👥 Todos (Mensaje Público)</option>
+        </select>
+      </div>
+
+      <!-- CAJA DE MENSAJES -->
+      <div class="chat-box" id="chat-box" style="flex:1;min-height:160px;max-height:260px;background:rgba(12,6,10,0.98)!important;border:1.5px solid var(--gold)!important;border-radius:14px;padding:10px 12px;overflow-y:auto;margin-bottom:8px"></div>
+
+      <!-- PANEL EMOJIS -->
+      <div id="emoji-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;font-size:1.2rem;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center;cursor:pointer">
+        <span onclick="addEmojiToChat('🔥')">🔥</span>
+        <span onclick="addEmojiToChat('💋')">💋</span>
+        <span onclick="addEmojiToChat('😈')">😈</span>
+        <span onclick="addEmojiToChat('🥃')">🥃</span>
+        <span onclick="addEmojiToChat('🍆')">🍆</span>
+        <span onclick="addEmojiToChat('🍑')">🍑</span>
+        <span onclick="addEmojiToChat('💦')">💦</span>
+        <span onclick="addEmojiToChat('🥂')">🥂</span>
+        <span onclick="addEmojiToChat('🔞')">🔞</span>
+        <span onclick="addEmojiToChat('✨')">✨</span>
+        <span onclick="addEmojiToChat('⛓️')">⛓️</span>
+        <span onclick="addEmojiToChat('👙')">👙</span>
+        <span onclick="addEmojiToChat('🖤')">🖤</span>
+        <span onclick="addEmojiToChat('👅')">👅</span>
+        <span onclick="addEmojiToChat('👀')">👀</span>
+        <span onclick="addEmojiToChat('💣')">💣</span>
+      </div>
+
+      <!-- PANEL STICKERS -->
+      <div id="sticker-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;grid-template-columns:repeat(3,1fr);gap:8px">
+        <button class="btn btn-secondary" onclick="sendStickerChat('🔥 Fuego Total')" style="font-size:0.75rem;padding:6px;margin:0">🔥 Fuego Total</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💋 Beso Ardiente')" style="font-size:0.75rem;padding:6px;margin:0">💋 Beso Ardiente</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🥃 Fondo Blanco')" style="font-size:0.75rem;padding:6px;margin:0">🥃 Fondo Blanco</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('😈 Modo Atrevido')" style="font-size:0.75rem;padding:6px;margin:0">😈 Atrevido</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('🍑 Nalgada')" style="font-size:0.75rem;padding:6px;margin:0">🍑 Nalgada</button>
+        <button class="btn btn-secondary" onclick="sendStickerChat('💦 Pasión Total')" style="font-size:0.75rem;padding:6px;margin:0">💦 Pasión</button>
+      </div>
+
+      <!-- INDICADOR GRABACIÓN -->
+      <div id="recording-status" style="display:none;color:#ff4d6a;font-size:0.8rem;margin-bottom:6px;text-align:center;font-weight:600">
+        🔴 Grabando nota de voz... <span id="record-timer">00:00</span>
+      </div>
+
+      <!-- FILA DE ENTRADA CON ICONOS Y BOTONES MÓVILES PERFECTOS -->
+      <div class="chat-row">
+        <!-- Foto -->
+        <label class="chat-icon-btn" for="chat-photo-input" title="Enviar foto">📷</label>
+        <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display:none" onchange="sendImageChat(this)" />
+
+        <!-- Emojis -->
+        <button type="button" class="chat-icon-btn" onclick="toggleChatDrawer('emoji')" title="Emojis">😊</button>
+
+        <!-- Micrófono -->
+        <button type="button" class="chat-icon-btn" id="chat-mic-btn" title="Nota de voz" onclick="toggleVoiceNote()">🎤</button>
+
+        <!-- Input de texto -->
+        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." autocomplete="off" enterkeyhint="send" onkeydown="if(event.key==='Enter')sendChat()" />
+
+        <!-- Enviar -->
+        <button type="button" class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">➤</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- HOME PRINCIPAL -->
   <div id="home-screen" class="screen active">
     <div class="logo">Afrodita</div>
@@ -342,7 +542,7 @@
     <button class="btn btn-primary" onclick="startOffline()" style="margin-bottom:12px;background:linear-gradient(135deg, #f0d78c, #d4af37);color:#0a0304;font-size:1.08rem">
       📱 Jugar Offline (Un solo teléfono)
     </button>
-    <button class="btn btn-secondary" onclick="showScreen('login-screen')">🌐 Jugar Online (Varios teléfonos)</button>
+    <button class="btn btn-secondary" onclick="showOnlineHome()">🌐 Jugar Online (Varios teléfonos)</button>
     <div style="text-align:center;margin-top:12px">
       <button onclick="forceResetApp()" style="background:transparent;border:none;color:var(--muted);font-size:0.75rem;text-decoration:underline;cursor:pointer">
         🔄 Restablecer datos guardados
@@ -367,15 +567,19 @@
     <div class="logo" style="font-size:2.2rem">Modo Offline</div>
     <div class="subtitle">Sin necesidad de internet</div>
 
+    <div class="section-title">Orientación / Preferencia Sexual</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary orientation-off-btn active" data-o="hetero" style="flex:1;font-size:0.8rem">👫 Hetero</button>
+      <button class="btn btn-secondary orientation-off-btn" data-o="gay" style="flex:1;font-size:0.8rem">👬 Mismo Sexo</button>
+      <button class="btn btn-secondary orientation-off-btn" data-o="bisexual" style="flex:1;font-size:0.8rem">🌈 Bisexual</button>
+    </div>
+
     <div class="section-title">Número de participantes</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
-      <button class="btn btn-secondary off-num active" data-n="2">2</button>
-      <button class="btn btn-secondary off-num" data-n="3">3</button>
-      <button class="btn btn-secondary off-num" data-n="4">4</button>
-      <button class="btn btn-secondary off-num" data-n="5">5</button>
-      <button class="btn btn-secondary off-num" data-n="6">6</button>
-      <button class="btn btn-secondary off-num" data-n="7">7</button>
-      <button class="btn btn-secondary off-num" data-n="8">8</button>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary off-num active" data-n="2">2 (Pareja)</button>
+      <button class="btn btn-secondary off-num" data-n="3">3 (Trío)</button>
+      <button class="btn btn-secondary off-num" data-n="4">4 (Cuarteto)</button>
+      <button class="btn btn-secondary off-num" data-n="5">5+ (Grupo)</button>
     </div>
 
     <div class="section-title">Nombres de los participantes</div>
@@ -406,6 +610,13 @@
     <div class="section-title">Crear Ritual Online</div>
     <input type="text" id="couple-name-create" placeholder="Tu nombre o nombre de pareja">
 
+    <div class="section-title">Orientación / Preferencia del Ritual</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary orientation-create-btn active" data-o="hetero" style="flex:1;font-size:0.8rem">👫 Hetero</button>
+      <button class="btn btn-secondary orientation-create-btn" data-o="gay" style="flex:1;font-size:0.8rem">👬 Mismo Sexo</button>
+      <button class="btn btn-secondary orientation-create-btn" data-o="bisexual" style="flex:1;font-size:0.8rem">🌈 Bisexual</button>
+    </div>
+
     <div class="section-title">Modalidad de distancia</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
       <button class="btn btn-secondary distance-btn active" data-d="separados">Todos separados</button>
@@ -413,12 +624,12 @@
       <button class="btn btn-secondary distance-btn" data-d="mixta">Mixta</button>
     </div>
 
-    <div class="section-title">Número de participantes / parejas</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px">
-      <button class="btn btn-secondary num-btn active" data-n="1">1</button>
-      <button class="btn btn-secondary num-btn" data-n="2">2</button>
-      <button class="btn btn-secondary num-btn" data-n="3">3</button>
-      <button class="btn btn-secondary num-btn" data-n="4">4</button>
+    <div class="section-title">Formato de Juego / Participantes</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+      <button class="btn btn-secondary num-btn active" data-n="2">2 (Pareja)</button>
+      <button class="btn btn-secondary num-btn" data-n="3">3 (Trío)</button>
+      <button class="btn btn-secondary num-btn" data-n="4">4 (Cuarteto)</button>
+      <button class="btn btn-secondary num-btn" data-n="5">5+ (Grupo)</button>
     </div>
 
     <div class="section-title">Intensidad</div>
@@ -610,80 +821,6 @@
       <button class="action-btn next-btn" onclick="nextTurn()">Siguiente</button>
       <button class="action-btn skip-btn" id="skip-btn" onclick="skipCard()">Saltar</button>
       <button class="action-btn btn-drink" id="fail-btn" style="display:none;grid-column:span 2" onclick="failChallenge()">No lo superé (Beber)</button>
-    </div>
-
-    <!-- CHAT MULTIMEDIA EN TIEMPO REAL (SOLO ONLINE) -->
-    <div id="chat-section" style="display:none;margin-top:14px">
-      <div class="section-title" style="margin-bottom:6px">💬 CHAT EN VIVO Y MENSAJERÍA</div>
-
-      <!-- SELECTOR DE DESTINATARIO Y MODO PRIVADO -->
-      <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
-        <span style="font-size:0.75rem;color:var(--gold-light);font-weight:600">Enviar a:</span>
-        <select id="chat-target-select" style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid #333;color:var(--text);border-radius:8px;font-size:0.8rem">
-          <option value="ALL">👥 Todos (Mensaje Público)</option>
-        </select>
-      </div>
-
-      <!-- CAJA DE MENSAJES -->
-      <div class="chat-box" id="chat-box" style="min-height:140px;max-height:180px;background:rgba(10,5,8,0.95);border:1px solid var(--gold);border-radius:12px;padding:10px;overflow-y:auto;margin-bottom:8px"></div>
-
-      <!-- BARRA DE HERRAMIENTAS RICAS (EMOJIS, FOTO/SELFIE, NOTA DE VOZ, GIFS/STICKERS) -->
-      <div style="display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
-        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('emoji')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          😊 Emojis
-        </button>
-        <button type="button" class="btn btn-secondary" onclick="toggleChatDrawer('sticker')" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          🎭 GIFs/Stickers
-        </button>
-        <label class="btn btn-secondary" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0;cursor:pointer;display:inline-block">
-          📸 Foto/Selfie
-          <input type="file" id="chat-file-input" accept="image/*" capture="user" onchange="sendImageChat(this)" style="display:none">
-        </label>
-        <button type="button" id="voice-record-btn" class="btn btn-secondary" onclick="toggleVoiceRecording()" style="padding:6px 10px;font-size:0.78rem;margin:0;width:auto;flex-shrink:0">
-          🎙️ Nota de Voz
-        </button>
-      </div>
-
-      <!-- PANEL DE EMOJIS DEPLEGABLE -->
-      <div id="emoji-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;font-size:1.2rem;grid-template-columns:repeat(8,1fr);gap:6px;text-align:center;cursor:pointer">
-        <span onclick="addEmojiToChat('🔥')">🔥</span>
-        <span onclick="addEmojiToChat('💋')">💋</span>
-        <span onclick="addEmojiToChat('😈')">😈</span>
-        <span onclick="addEmojiToChat('🥃')">🥃</span>
-        <span onclick="addEmojiToChat('🍆')">🍆</span>
-        <span onclick="addEmojiToChat('🍑')">🍑</span>
-        <span onclick="addEmojiToChat('💦')">💦</span>
-        <span onclick="addEmojiToChat('🥂')">🥂</span>
-        <span onclick="addEmojiToChat('🔞')">🔞</span>
-        <span onclick="addEmojiToChat('✨')">✨</span>
-        <span onclick="addEmojiToChat('⛓️')">⛓️</span>
-        <span onclick="addEmojiToChat('👙')">👙</span>
-        <span onclick="addEmojiToChat('🖤')">🖤</span>
-        <span onclick="addEmojiToChat('👅')">👅</span>
-        <span onclick="addEmojiToChat('👀')">👀</span>
-        <span onclick="addEmojiToChat('💣')">💣</span>
-      </div>
-
-      <!-- PANEL DE GIFS / STICKERS DEPLEGABLE -->
-      <div id="sticker-drawer" style="display:none;background:rgba(25,15,20,0.95);border:1px solid #444;border-radius:10px;padding:8px;margin-bottom:8px;grid-template-columns:repeat(3,1fr);gap:8px">
-        <button class="btn btn-secondary" onclick="sendStickerChat('🔥 Fuego Total')" style="font-size:0.75rem;padding:6px;margin:0">🔥 Fuego Total</button>
-        <button class="btn btn-secondary" onclick="sendStickerChat('💋 Beso Ardiente')" style="font-size:0.75rem;padding:6px;margin:0">💋 Beso Ardiente</button>
-        <button class="btn btn-secondary" onclick="sendStickerChat('🥃 Fondo Blanco')" style="font-size:0.75rem;padding:6px;margin:0">🥃 Fondo Blanco</button>
-        <button class="btn btn-secondary" onclick="sendStickerChat('😈 Modo Atrevido')" style="font-size:0.75rem;padding:6px;margin:0">😈 Atrevido</button>
-        <button class="btn btn-secondary" onclick="sendStickerChat('🍑 Nalgada')" style="font-size:0.75rem;padding:6px;margin:0">🍑 Nalgada</button>
-        <button class="btn btn-secondary" onclick="sendStickerChat('💦 Pasión Total')" style="font-size:0.75rem;padding:6px;margin:0">💦 Pasión</button>
-      </div>
-
-      <!-- INDICADOR DE GRABACIÓN DE AUDIO -->
-      <div id="recording-status" style="display:none;color:#ff4d6a;font-size:0.8rem;margin-bottom:6px;text-align:center;font-weight:600">
-        🔴 Grabando nota de voz... <span id="record-timer">00:00</span>
-      </div>
-
-      <!-- FILA DE ENTRADA DE TEXTO Y ENVIAR -->
-      <div class="chat-row">
-        <input type="text" id="chat-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendChat()">
-        <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
-      </div>
     </div>
 
     <button class="btn btn-secondary" style="margin-top:14px" onclick="exitGame()">← Salir al menú principal</button>
@@ -884,6 +1021,17 @@
        AFRODITA - PERSONAJE & DIÁLOGOS (BLOQUES 1, 2, 3, 4, 5, 6)
        ========================================================================== */
 
+    /**
+     * BLOQUE 1 – Prompt del Personaje (System Prompt)
+     * Eres Afrodita, la diosa griega del amor, el deseo, el placer y la seducción.
+     * Tono sensual, juguetón, dominante, provocativo y descarado.
+     *
+     * BLOQUE 2 – Prompt de Lenguaje Corporal
+     * Expresiones y animaciones sincronizadas con el diálogo (inclinación de cabeza,
+     * mirada lasciva, mordida de labio, sonrisa dominante).
+     */
+
+    // BLOQUE 3 – Base de datos de diálogos (JavaScript)
     const afroditaDialogues = {
       bienvenida: {
         corta: [
@@ -977,6 +1125,7 @@
       }
     };
 
+    // BLOQUE 4 – Funciones principales
     function getAfroditaPhrase(category, forceType = null) {
       const cat = afroditaDialogues[category];
       if (!cat) return "";
@@ -1003,6 +1152,7 @@
       return getAfroditaPhrase(category, type);
     }
 
+    // BLOQUE 5 – Sistema de Cooldown Inteligente
     const afroditaCooldown = {
       lastSpeakTime: 0,
       normalInterval: 18000,
@@ -1035,6 +1185,7 @@
       return phrase;
     }
 
+    // BLOQUE 6 – Integración en momentos del juego
     function onGameStart(distanceMode = "separados") {
       const phrase = speakAsAfroditaWithCooldown("bienvenida", { distanceMode });
       if (phrase) showAfroditaMessage(phrase);
@@ -1100,12 +1251,39 @@
     // ESTADO DEL JUEGO
     let currentUser=null, currentRoom=null, currentPlayers=[], myCoupleName='', myToys=[], myPositions=[];
     let numPlayers=2, numCouples=2, distanceMode='separados', responseMode='solo', intensity='medio';
+    let sexualOrientation='hetero'; // 'hetero', 'gay', 'bisexual'
     let playerNames=[], currentTurn=0, currentRound=1, skipCount=0;
     let usedQ=new Set(), usedD=new Set(), channel=null;
     let currentCardDrinks=1, isDareCard=false, isOffline=true;
     let votesYes=0, votesNo=0;
     let activeScreenId = 'home-screen';
     let currentDisplayedCard = null;
+
+    const trioQ = [
+      "Si tuviéramos un trío esta noche, ¿quién de nosotros tomaría la iniciativa y cuál sería la primera posición?",
+      "¿Qué es lo que más te excita de estar en una cama con dos personas al mismo tiempo?",
+      "¿Te gustaría que dos personas te besen y te acaricien al mismo tiempo en zonas erógenas distintas?",
+      "Describe cómo te gustaría ser el centro de atención de un trío apasionado esta noche."
+    ];
+
+    const trioD = [
+      {text: "Ponte en el centro y deja que los otros dos participantes te besen sensualmente el cuello y el torso durante 2 minutos.", drinks: 2},
+      {text: "Elige a dos participantes para que te hagan un masaje a cuatro manos con aceite erótico.", drinks: 2},
+      {text: "Recibe besos simultáneos de dos personas mientras mantienes los ojos cerrados.", drinks: 2}
+    ];
+
+    function adaptTextForOrientation(text) {
+      if (!text || typeof text !== 'string') return text;
+      if (sexualOrientation === 'gay') {
+        return text.replace(/pareja del sexo opuesto/gi, "pareja")
+                   .replace(/hombre y mujer/gi, "compañeros")
+                   .replace(/él o ella/gi, "tu compañero/a");
+      } else if (sexualOrientation === 'bisexual') {
+        return text.replace(/pareja del sexo opuesto/gi, "cualquier participante")
+                   .replace(/con tu pareja/gi, "con quien tú elijas del grupo");
+      }
+      return text;
+    }
 
     // PERSISTENCIA DE ESTADO CON LOCALSTORAGE (MANTIENE LA PARTIDA EN SEGUNDO PLANO Y TRAS REINICIOS)
     function saveGameState() {
@@ -1117,6 +1295,7 @@
           distanceMode,
           responseMode,
           intensity,
+          sexualOrientation,
           playerNames,
           myCoupleName,
           myToys,
@@ -1160,6 +1339,9 @@
 
         if (!data || typeof data !== 'object') return false;
 
+        // Si la pantalla guardada era home-screen, no forzar restauración
+        if (data.activeScreenId === 'home-screen') return false;
+
         isOffline = data.isOffline !== undefined ? data.isOffline : true;
         numPlayers = data.numPlayers || 2;
         numCouples = data.numCouples || 2;
@@ -1185,7 +1367,16 @@
           currentRoom = data.currentRoom;
         }
 
-        // Si es una partida Online activa, verificar con Supabase si la sala aún existe
+        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
+
+        if (document.getElementById(targetScreen)) {
+          showScreen(targetScreen, false);
+        } else {
+          showHome();
+          return false;
+        }
+
+        // Si es una partida Online activa, reconectar en tiempo real con Supabase
         if (!isOffline && currentRoom && currentRoom.id && supabaseApp) {
           supabaseApp.from('rooms').select('status').eq('id', currentRoom.id).single().then(({ data: rData, error }) => {
             if (!error && rData) {
@@ -1193,19 +1384,14 @@
             }
             joinRealtime(currentRoom.id);
             loadPlayers();
-          }).catch(() => {});
+          }).catch(() => {
+            joinRealtime(currentRoom.id);
+            loadPlayers();
+          });
         }
 
-        if (isOffline && data.activeScreenId === 'offline-setup') {
+        if (isOffline && targetScreen === 'offline-setup') {
           updateOfflinePlayerInputs();
-        }
-
-        const targetScreen = data.activeScreenId || (isOffline ? 'home-screen' : 'dashboard-screen');
-        if (document.getElementById(targetScreen)) {
-          showScreen(targetScreen, false);
-        } else {
-          showHome();
-          return false;
         }
 
         if (targetScreen === 'game-screen') {
@@ -1264,9 +1450,35 @@
         if(target) {
           target.classList.add('active');
           activeScreenId = id;
+
+          // Mostrar u ocultar el Botón Flotante de Chat
+          const chatBtn = document.getElementById('chat-trigger-btn');
+          if (chatBtn) {
+            if (!isOffline && currentRoom && ['game-screen', 'room-screen', 'accepted-wait-screen', 'pending-screen'].includes(id)) {
+              chatBtn.style.display = 'flex';
+            } else {
+              chatBtn.style.display = 'none';
+              const modal = document.getElementById('chat-modal');
+              if (modal) modal.style.display = 'none';
+            }
+          }
+
           if (save) saveGameState();
+        } else {
+          console.log('Target screen not found:', id);
         }
       } catch(e){ console.log('Error showScreen:', e); }
+    }
+
+    function showHome(){ showScreen('home-screen'); }
+
+    function showOnlineHome(){
+      sClick();
+      if (currentUser) {
+        showScreen('dashboard-screen');
+      } else {
+        showScreen('login-screen');
+      }
     }
 
     function showHome(){ showScreen('home-screen'); }
@@ -1309,7 +1521,6 @@
       showScreen('game-screen');
       updateGameUI();
       onGameStart(distanceMode);
-      saveGameState();
     }
 
     // AUTH ONLINE
@@ -1386,7 +1597,6 @@
 
     async function signOut(){
       if(supabaseApp) await supabaseApp.auth.signOut();
-      clearGameState();
       location.reload();
     }
 
@@ -1521,8 +1731,6 @@
         if(channel) supabaseApp.removeChannel(channel);
         currentRoom = null;
       }
-      clearGameState();
-      stopAllPolling();
       showScreen('dashboard-screen');
     }
 
@@ -1569,7 +1777,6 @@
               updateGameUI();
             }
           }
-          fetchChatMessages();
         } else {
           stopGamePolling();
         }
@@ -1588,6 +1795,20 @@
       stopGamePolling();
     }
 
+    function broadcastLocalChat(fullMessageObj) {
+      if (channel) {
+        try {
+          channel.send({
+            type: 'broadcast',
+            event: 'chat_msg_event',
+            payload: fullMessageObj
+          });
+        } catch(e) {
+          console.log('Error enviando broadcast de chat:', e);
+        }
+      }
+    }
+
     function joinRealtime(roomId){
       if(!supabaseApp) return;
       if(channel) supabaseApp.removeChannel(channel);
@@ -1599,6 +1820,20 @@
       }
 
       channel = supabaseApp.channel('room:'+roomId)
+        .on('broadcast', { event: 'chat_msg_event' }, payload => {
+          if (payload && payload.payload) {
+            const m = payload.payload;
+            const fakePayload = {
+              id: 'bcast_' + Date.now() + '_' + Math.random(),
+              room_id: roomId,
+              user_id: m.senderId,
+              couple_name: m.senderName,
+              message: JSON.stringify(m),
+              created_at: new Date().toISOString()
+            };
+            addChat(fakePayload);
+          }
+        })
         .on('postgres_changes',{event:'*',schema:'public',table:'room_players',filter:`room_id=eq.${roomId}`},()=>loadPlayers())
         .on('postgres_changes',{event:'*',schema:'public',table:'rooms',filter:`id=eq.${roomId}`},p=>{
           currentRoom = p.new;
@@ -1667,33 +1902,22 @@
 
       const isHost = currentUser && currentUser.id === currentRoom.host_id;
 
-      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO SOLO SI EL JUGADOR FUE ACEPTADO O ES EL HOST
+      // 3. SI LA SALA YA PASÓ A 'playing', ENTRAR AL JUEGO DE INMEDIATO PARA TODOS LOS JUGADORES ACEPTADOS O HOST
       if (currentRoom.status === 'playing') {
-        const myRec = currentPlayers.find(p =>
-          (currentUser && p.user_id === currentUser.id) ||
-          (myCoupleName && p.couple_name === myCoupleName)
-        );
-
-        if (isHost || (myRec && myRec.status === 'accepted')) {
-          stopRoomPolling();
-          startGamePolling();
-          isOffline = false;
-          if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
-            showScreen('transition-screen');
-            setTimeout(() => {
-              document.getElementById('chat-section').style.display = 'block';
-              showScreen('game-screen');
-              updateGameUI();
-            }, 2500);
-          } else {
+        stopRoomPolling();
+        startGamePolling();
+        isOffline = false;
+        if (activeScreenId !== 'game-screen' && activeScreenId !== 'transition-screen') {
+          showScreen('transition-screen');
+          setTimeout(() => {
+            document.getElementById('chat-section').style.display = 'block';
+            showScreen('game-screen');
             updateGameUI();
-          }
-          return;
-        } else if (myRec && myRec.status === 'pending') {
-          // MANTENER AL INVITADO EN ESPERA DE APROBACIÓN
-          showScreen('pending-screen');
-          return;
+          }, 2500);
+        } else {
+          updateGameUI();
         }
+        return;
       }
 
       // Notificación visual y sonora al anfitrión si hay nueva solicitud
@@ -1811,6 +2035,37 @@
     // SISTEMA DE CHAT, MENSAJERÍA PRIVADA Y MULTIMEDIA EN TIEMPO REAL
     // ==========================================================================
 
+    let unreadChatCount = 0;
+    let isChatModalOpen = false;
+
+    function toggleChatModal() {
+      const modal = document.getElementById('chat-modal');
+      if (!modal) return;
+      isChatModalOpen = (modal.style.display === 'flex');
+      if (isChatModalOpen) {
+        modal.style.display = 'none';
+        isChatModalOpen = false;
+      } else {
+        modal.style.display = 'flex';
+        isChatModalOpen = true;
+        unreadChatCount = 0;
+        updateUnreadBadge();
+        const box = document.getElementById('chat-box');
+        if (box) box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    function updateUnreadBadge() {
+      const badge = document.getElementById('chat-unread-badge');
+      if (!badge) return;
+      if (unreadChatCount > 0) {
+        badge.textContent = unreadChatCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
     function updateChatTargets() {
       const select = document.getElementById('chat-target-select');
       if (!select) return;
@@ -1865,32 +2120,39 @@
       const selectedOption = targetSelect?.options[targetSelect.selectedIndex];
       const targetName = selectedOption ? selectedOption.text.replace('🔒 Privado a: ', '').replace('👥 Todos (Mensaje Público)', 'Todos') : 'Todos';
 
-      const fullMessage = {
+      const userId = (currentUser && currentUser.id) ? currentUser.id : (currentRoom.host_id || '00000000-0000-0000-0000-000000000000');
+      const senderName = myCoupleName || 'Jugador';
+
+      const fullMessageObj = {
         type: payloadObj.type || 'text',
         content: payloadObj.content || '',
         target: targetVal,
         targetName: targetName,
-        senderId: currentUser ? currentUser.id : 'anon',
-        senderName: myCoupleName || 'Jugador'
+        senderId: userId,
+        senderName: senderName
       };
 
+      const jsonStr = JSON.stringify(fullMessageObj);
+
+      // 1. Mostrar de inmediato en el chat local del emisor (Optimista)
+      addChatLocal(senderName, payloadObj.content, true, payloadObj.type, payloadObj.content);
+
+      // Transmitir vía WebSocket Broadcast en tiempo real a todos los dispositivos conectados
+      broadcastLocalChat(fullMessageObj);
+
+      // 2. Enviar a Supabase
       const { error } = await supabaseApp.from('chat_messages').insert({
         room_id: currentRoom.id,
-        user_id: currentUser ? currentUser.id : 'anon',
-        couple_name: myCoupleName || 'Jugador',
-        message: JSON.stringify(fullMessage)
+        user_id: userId,
+        couple_name: senderName,
+        message: jsonStr,
+        type: payloadObj.type || 'text',
+        media_url: payloadObj.content || null
       });
 
       if (error) {
-        console.log('Error enviando mensaje JSON:', error.message);
-        await supabaseApp.from('chat_messages').insert({
-          room_id: currentRoom.id,
-          user_id: currentUser ? currentUser.id : 'anon',
-          couple_name: myCoupleName || 'Jugador',
-          message: payloadObj.type === 'text' ? payloadObj.content : `[${payloadObj.type.toUpperCase()}] ${payloadObj.content}`
-        });
+        console.log('Error enviando chat a Supabase:', error.message);
       }
-      fetchChatMessages();
     }
 
     async function sendChat(){
@@ -1907,9 +2169,10 @@
       closeChatDrawers();
     }
 
-    function sendImageChat(inputEl) {
-      if (!inputEl.files || !inputEl.files[0]) return;
-      const file = inputEl.files[0];
+    // ---------- Enviar foto ----------
+    async function sendPhoto(file) {
+      if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const img = new Image();
@@ -1922,73 +2185,113 @@
           canvas.width = w; canvas.height = h;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const base64Jpeg = canvas.toDataURL('image/jpeg', 0.65);
-          await sendChatPayload({ type: 'image', content: base64Jpeg });
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+          await sendChatPayload({ type: 'image', content: dataUrl });
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+    }
+
+    function sendImageChat(inputEl) {
+      if (!inputEl.files || !inputEl.files[0]) return;
+      sendPhoto(inputEl.files[0]);
       inputEl.value = '';
       closeChatDrawers();
     }
 
     let mediaRecorder = null;
     let audioChunks = [];
-    let recordTimerInterval = null;
-    let recordSeconds = 0;
+    let isRecording = false;
 
-    async function toggleVoiceRecording() {
-      const btn = document.getElementById('voice-record-btn');
-      const statusEl = document.getElementById('recording-status');
-      const timerEl = document.getElementById('record-timer');
+    // ---------- Enviar nota de voz ----------
+    async function toggleVoiceNote() {
+      const btn = document.getElementById('chat-mic-btn');
+      if (!btn) return;
 
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      if (!isRecording) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          audioChunks = [];
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              sampleRate: 44100
+            }
+          });
+
           mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
+          };
+
           mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
             const reader = new FileReader();
             reader.onloadend = async function() {
-              const base64Audio = reader.result;
-              await sendChatPayload({ type: 'audio', content: base64Audio });
+              const dataUrl = reader.result;
+              await sendChatPayload({ type: 'audio', content: dataUrl });
             };
-            reader.readAsDataURL(audioBlob);
+            reader.readAsDataURL(blob);
+
             stream.getTracks().forEach(t => t.stop());
           };
-          mediaRecorder.start();
-          recordSeconds = 0;
-          if (statusEl) statusEl.style.display = 'block';
-          if (btn) btn.textContent = '⏹️ Enviar Nota';
-          recordTimerInterval = setInterval(() => {
-            recordSeconds++;
-            const m = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
-            const s = String(recordSeconds % 60).padStart(2, '0');
-            if (timerEl) timerEl.textContent = `${m}:${s}`;
-          }, 1000);
-        } catch(e) {
-          alert('No se pudo acceder al micrófono para grabar la nota de voz: ' + e.message);
+
+          mediaRecorder.start(250);
+          isRecording = true;
+          btn.classList.add('recording');
+          btn.textContent = '⏹';
+        } catch (err) {
+          console.error(err);
+          alert('No se pudo acceder al micrófono. Revisa los permisos del dispositivo.');
         }
-      } else if (mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        clearInterval(recordTimerInterval);
-        if (statusEl) statusEl.style.display = 'none';
-        if (btn) btn.textContent = '🎙️ Nota de Voz';
+      } else {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        isRecording = false;
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
       }
     }
 
     const processedMsgIds = new Set();
 
+    function addChatLocal(coupleName, message, isMe = false, type = 'text', mediaUrl = null) {
+      const box = document.getElementById('chat-box');
+      if (!box) return;
+
+      let content = '';
+      if (type === 'image' && mediaUrl) {
+        content = `<br><img src="${mediaUrl}" class="chat-img" alt="foto" onclick="window.open(this.src)" />`;
+      } else if (type === 'audio' && mediaUrl) {
+        content = `<br><audio controls class="chat-audio" src="${mediaUrl}"></audio>`;
+      } else if (type === 'sticker') {
+        content = `<span style="background:rgba(212,175,55,0.25);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${escapeHtml(message || '')}</span>`;
+      } else {
+        content = escapeHtml(message || '');
+      }
+
+      const div = document.createElement('div');
+      div.className = 'chat-msg' + (isMe ? ' me' : '');
+      div.style.marginBottom = '8px';
+      div.style.lineHeight = '1.4';
+      div.style.wordBreak = 'break-word';
+      div.style.color = '#f8f5f0';
+      div.innerHTML = `<strong style="color:${isMe ? '#f0d78c' : 'var(--gold)'};font-weight:700">${escapeHtml(coupleName)}:</strong> ${content}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+
+      if (!isChatModalOpen) {
+        unreadChatCount++;
+        updateUnreadBadge();
+      }
+    }
+
     function addChat(m){
       if(!m) return;
-      const msgKey = m.id || (m.user_id + '_' + m.created_at);
-      if (processedMsgIds.has(msgKey)) return;
-      processedMsgIds.add(msgKey);
-
-      const box = document.getElementById('chat-box');
-      if(!box) return;
 
       let msgData = null;
       try {
@@ -1997,8 +2300,17 @@
         }
       } catch(e){}
 
-      const senderName = m.couple_name || 'Jugador';
-      const senderId = m.user_id;
+      const senderName = m.couple_name || m.senderName || 'Jugador';
+      const senderId = m.user_id || m.senderId;
+
+      // Evitar duplicar los mensajes que yo mismo envié localmente de forma optimista
+      const myId = currentUser ? currentUser.id : null;
+      const isMeSender = (myId && senderId === myId) || (myCoupleName && senderName === myCoupleName);
+      if (isMeSender) return;
+
+      const msgKey = m.id || (senderId + '_' + m.created_at + '_' + (typeof m.message === 'string' ? m.message.substring(0,30) : ''));
+      if (processedMsgIds.has(msgKey)) return;
+      processedMsgIds.add(msgKey);
 
       let type = 'text';
       let content = m.message;
@@ -2012,35 +2324,16 @@
         targetName = msgData.targetName || 'Todos';
       }
 
-      // Filtrar mensajes privados: Solo mostrar si es para 'ALL', o si el usuario actual es el remitente o el destinatario
-      const myId = currentUser ? currentUser.id : null;
-      const isForMe = target === 'ALL' || (myId && (target === myId || senderId === myId)) || (myCoupleName && target === myCoupleName);
-
+      const isForMe = target === 'ALL' || (myId && target === myId) || (myCoupleName && target === myCoupleName);
       if (!isForMe) return;
 
-      const isPrivate = target !== 'ALL';
-      const prefix = isPrivate ? `<span style="color:#ff4d6a;font-weight:700">[🔒 Privado a ${targetName} de ${senderName}]: </span>` : `<strong>${senderName}:</strong> `;
+      const mediaUrl = m.media_url || m.mediaUrl || content;
+      addChatLocal(senderName, content, false, type, mediaUrl);
+    }
 
-      let bodyHtml = '';
-      if (type === 'text') {
-        bodyHtml = content;
-      } else if (type === 'sticker') {
-        bodyHtml = `<span style="background:rgba(212,175,55,0.22);border:1px solid var(--gold);padding:4px 10px;border-radius:10px;display:inline-block;margin-top:2px;font-weight:600;color:var(--gold-light)">${content}</span>`;
-      } else if (type === 'image') {
-        bodyHtml = `<br><img src="${content}" style="max-width:180px;border-radius:10px;margin-top:4px;border:1px solid var(--gold)" onclick="window.open(this.src)">`;
-      } else if (type === 'audio') {
-        bodyHtml = `<br><audio controls src="${content}" style="max-width:210px;height:36px;margin-top:4px"></audio>`;
-      }
-
-      const msgEl = document.createElement('div');
-      msgEl.className = 'chat-msg';
-      msgEl.style.marginBottom = '8px';
-      msgEl.style.fontSize = '0.86rem';
-      msgEl.style.wordBreak = 'break-word';
-      msgEl.innerHTML = prefix + bodyHtml;
-
-      box.appendChild(msgEl);
-      box.scrollTop = box.scrollHeight;
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
     async function fetchChatMessages() {
@@ -2277,7 +2570,7 @@
       }else if(currentRoom){
         const accepted = currentPlayers.filter(p=>p.status==='accepted');
         const name = accepted[currentRoom.current_turn||0]?.couple_name || `Participante ${(currentRoom.current_turn||0)+1}`;
-        document.getElementById('g-round').textContent = `Ronda ${currentRound}`;
+        document.getElementById('g-round').textContent = `Ronda ${currentRoom.current_round||1}`;
         document.getElementById('g-turn').textContent = `Turno de: ${name}`;
         document.getElementById('g-mode').textContent = `Modalidad: ${currentRoom.distance_mode||'separados'}`;
         document.getElementById('g-label').textContent = (currentRoom.intensity||'medio').toUpperCase();
@@ -2287,7 +2580,7 @@
         if(card){
           isDareCard = card.type === 'RETO';
           currentCardDrinks = card.drinks || 1;
-          showCard(card.type, card.text, card.isPunishment, false);
+          showCard(card.type, card.text, card.isPunishment);
         }else{
           el.style.display='none';
           document.getElementById('choice-btns').style.display='grid';
@@ -2303,9 +2596,6 @@
       if(confirm('¿Salir del juego y volver al menú?')){
         if(channel && supabaseApp) supabaseApp.removeChannel(channel);
         currentRoom = null;
-        currentDisplayedCard = null;
-        clearGameState();
-        stopAllPolling();
         showScreen(isOffline ? 'home-screen' : 'dashboard-screen');
       }
     }
@@ -2315,12 +2605,7 @@
       renderSelectors('toys-offline', 'positions-offline');
       renderSelectors('toys-create', 'positions-create');
       renderSelectors('toys-join', 'positions-join');
-
-      // Restaurar estado guardado si el navegador/app se minimizó o reinició
-      const restored = restoreGameState();
-      if (!restored) {
-        showHome();
-      }
+      showHome();
 
       document.querySelectorAll('.off-num').forEach(b=>b.addEventListener('click', (e)=>{
         e.preventDefault();
@@ -2329,7 +2614,6 @@
         b.classList.add('active');
         numPlayers = parseInt(b.dataset.n) || 2;
         updateOfflinePlayerInputs();
-        saveGameState();
       }));
 
       document.querySelectorAll('.off-mode').forEach(b=>b.addEventListener('click', (e)=>{
@@ -2338,7 +2622,6 @@
         document.querySelectorAll('.off-mode').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
-        saveGameState();
       }));
 
       document.querySelectorAll('.num-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -2347,7 +2630,6 @@
         document.querySelectorAll('.num-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         numCouples = parseInt(b.dataset.n) || 1;
-        saveGameState();
       }));
 
       document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -2356,7 +2638,6 @@
         document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         responseMode = b.dataset.mode || 'solo';
-        saveGameState();
       }));
 
       document.querySelectorAll('.distance-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -2365,7 +2646,6 @@
         document.querySelectorAll('.distance-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         distanceMode = b.dataset.d || 'separados';
-        saveGameState();
       }));
 
       document.querySelectorAll('.intensity-btn').forEach(b=>b.addEventListener('click', (e)=>{
@@ -2374,24 +2654,35 @@
         document.querySelectorAll('.intensity-btn').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
         intensity = b.dataset.i || 'medio';
-        saveGameState();
+      }));
+
+      document.querySelectorAll('.orientation-off-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.orientation-off-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        sexualOrientation = b.dataset.o || 'hetero';
+      }));
+
+      document.querySelectorAll('.orientation-create-btn').forEach(b=>b.addEventListener('click', (e)=>{
+        e.preventDefault();
+        sClick();
+        document.querySelectorAll('.orientation-create-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        sexualOrientation = b.dataset.o || 'hetero';
       }));
 
       if(supabaseApp){
         supabaseApp.auth.getSession().then(({data:{session}})=>{
-          if(session){
-            currentUser = session.user;
-            if (!restored) {
-              isOffline = false;
-              showScreen('dashboard-screen');
-            }
-          }
+          if(session){currentUser = session.user; isOffline = false; showScreen('dashboard-screen')}
         }).catch(()=>{});
 
         supabaseApp.auth.onAuthStateChange((event, session) => {
           console.log('Evento Auth:', event);
           if (session && session.user) {
             currentUser = session.user;
+            isOffline = false;
+            showScreen('dashboard-screen');
           }
         });
       }
